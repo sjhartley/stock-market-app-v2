@@ -19,7 +19,7 @@ import html2pdf from "html2pdf-jspdf2";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
-const axios = require("axios");
+import axios from "axios";
 const kaching = require("../sounds/kaching.ogg");
 const kachingAudio = new Audio(kaching);
 const lobby = require("../sounds/lobby.ogg");
@@ -425,6 +425,48 @@ const DataTable = ({ data, type, logo_dev_key }) => {
     setIsDraggingLeft(false);
   };
 
+  const renderWatchlist4pdf = () => {
+    let watchlistArr = localStorage.getItem("watchlistArr");
+    if (watchlistArr !== null) {
+      watchlistArr = JSON.parse(watchlistArr);
+      if (watchlistArr.length !== null) {
+        let watchlistObj = watchlistArr.map(function (el, i) {
+          return (
+            <tr>
+              <td>{el.desc}</td>
+              <td>{el.symbol}</td>
+              <td>{el.prev}</td>
+            </tr>
+          );
+        });
+        return (
+          <>
+            <table>
+              {" "}
+              {/* Wrap the table properly */}
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Ticker</th>
+                  <th>Prev($)</th>
+                </tr>
+              </thead>
+              <tbody>{watchlistObj}</tbody>
+            </table>
+            {/* <div className="html2pdf__page-break"></div> */}
+          </>
+        );
+      }
+    }
+  };
+
+  const createPdf = () => {
+    let html = <table>{renderWatchlist4pdf()}</table>;
+    html = ReactDOMServer.renderToStaticMarkup(html);
+    let worker = html2pdf();
+    worker.set({ margin: 10 }).from(html).save();
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="w-full max-w-5xl mx-auto">
@@ -495,7 +537,7 @@ const DataTable = ({ data, type, logo_dev_key }) => {
         </div>
         <div className="pb-10 text-left">
           <button
-            className="mr-4 text-xl text-red-500 bg-green-500 border-2 border-green-500 px-5 br-10 rounded-[30px]"
+            className="mr-4 text-l text-red-500 bg-green-500 border-2 border-green-500 px-5 br-10 rounded-[30px]"
             onClick={(event) => {
               setAnchorEl_add(event.currentTarget);
             }} // Close the popup when clicking "X"
@@ -503,14 +545,24 @@ const DataTable = ({ data, type, logo_dev_key }) => {
             Modify
           </button>
           {type == "watchlist_data" ? (
-            <button
-              className="text-xl text-red-500 bg-green-500 border-2 border-green-500 px-5 br-10 rounded-[30px]"
-              onClick={(event) => {
-                setAnchorEl_cols(event.currentTarget);
-              }} // Close the popup when clicking "X"
-            >
-              Customize columns
-            </button>
+            <span>
+              <button
+                className="mr-4 text-l text-red-500 bg-green-500 border-2 border-green-500 px-5 br-10 rounded-[30px]"
+                onClick={(event) => {
+                  setAnchorEl_cols(event.currentTarget);
+                }} // Close the popup when clicking "X"
+              >
+                Customize columns
+              </button>
+              <button
+                className="text-l text-red-500 bg-green-500 border-2 border-green-500 px-5 br-10 rounded-[30px]"
+                onClick={() => {
+                  createPdf();
+                }} // Close the popup when clicking "X"
+              >
+                Download Report
+              </button>
+            </span>
           ) : null}
           <ToastContainer />
           <Popover
@@ -1032,48 +1084,6 @@ export default class watchlist extends React.Component {
       });
   }
 
-  renderWatchlist4pdf() {
-    let watchlistArr = localStorage.getItem("watchlistArr");
-    if (watchlistArr !== null) {
-      watchlistArr = JSON.parse(watchlistArr);
-      if (watchlistArr.length !== null) {
-        let thingObj = watchlistArr.map(function (el, i) {
-          return (
-            <tr>
-              <td>{el.desc}</td>
-              <td>{el.symbol}</td>
-              <td>{el.prev}</td>
-            </tr>
-          );
-        });
-        return (
-          <>
-            <table>
-              {" "}
-              {/* Wrap the table properly */}
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Ticker</th>
-                  <th>Prev($)</th>
-                </tr>
-              </thead>
-              <tbody>{thingObj}</tbody>
-            </table>
-            <div className="html2pdf__page-break"></div>
-          </>
-        );
-      }
-    }
-  }
-
-  testPdf() {
-    let htmlThing = <table>{this.renderWatchlist4pdf()}</table>;
-    htmlThing = ReactDOMServer.renderToStaticMarkup(htmlThing);
-    let worker = html2pdf();
-    worker.set({ margin: 10 }).from(htmlThing).save();
-  }
-
   readoutStocks() {
     let watchlistArr = localStorage.getItem("watchlistArr");
     let utterances = [];
@@ -1397,19 +1407,6 @@ export default class watchlist extends React.Component {
                     }}
                   >
                     <IoIosMusicalNotes />
-                  </IconContext.Provider>
-                </button>
-              </span>
-              <span>
-                <button onClick={() => this.testPdf()}>
-                  <IconContext.Provider
-                    value={{
-                      color: "white",
-                      size: 32,
-                      className: "global-class-name",
-                    }}
-                  >
-                    <IoIosDownload />
                   </IconContext.Provider>
                 </button>
               </span>
