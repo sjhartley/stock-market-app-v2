@@ -453,7 +453,7 @@ const DataTable = ({ data, type, logo_dev_key }) => {
               </thead>
               <tbody>{watchlistObj}</tbody>
             </table>
-            {/* <div className="html2pdf__page-break"></div> */}
+            <div className="html2pdf__page-break"></div>
           </>
         );
       }
