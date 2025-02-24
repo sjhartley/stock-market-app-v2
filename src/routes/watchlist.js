@@ -96,11 +96,21 @@ const DataTable = ({ data, type, logo_dev_key }) => {
   let open_add = Boolean(anchorEl_add);
   let open_cols = Boolean(anchorEl_cols);
 
-  rows = rows.map((item) => ({
-    ...item,
-    logo: `https://img.logo.dev/ticker/${item.symbol}?token=${logo_dev_key}`,
-    chart: item.symbol,
-  }));
+  rows = rows.map((item) => {
+    // Only add the logo if the type is 'show_watchlist' or 'watchlist_data'
+    if (type === "show_watchlist" || type === "watchlist_data") {
+      return {
+        ...item,
+        logo: `https://img.logo.dev/ticker/${
+          type === "show_watchlist" ? item.ticker : item.symbol
+        }?token=${logo_dev_key}`,
+      };
+    } else {
+      return {
+        ...item,
+      };
+    }
+  });
 
   rows = rows.filter((row) => {
     const hasKeys = Object.keys(row).length > 0;
@@ -206,13 +216,8 @@ const DataTable = ({ data, type, logo_dev_key }) => {
       initialHeaders.splice(symbolIndex + 1, 0, "logo");
     }
 
-    // Update headers state if it has changed
-    if (
-      headers.length === 0 ||
-      headers.some((h, i) => h !== initialHeaders[i])
-    ) {
-      setHeaders(initialHeaders);
-    }
+    initialHeaders.push("chart");
+    setHeaders(initialHeaders);
 
     // Step 4: Reset filter if selected header changes to a non-numeric one
     if (selectedHeader && !isNumericColumn(selectedHeader)) {
@@ -825,18 +830,14 @@ const DataTable = ({ data, type, logo_dev_key }) => {
                             className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
                           >
                             <img
-                              src={`https://img.logo.dev/ticker/${item.symbol}?token=${logo_dev_key}`}
+                              src={item.logo}
                               alt="--"
                               style={{
                                 width: "60px",
                                 height: "60px",
                                 objectFit: "contain",
                               }}
-                              onClick={() =>
-                                handleImageClick(
-                                  `https://img.logo.dev/ticker/${item.symbol}?token=${logo_dev_key}`
-                                )
-                              }
+                              onClick={() => handleImageClick(item.logo)}
                               className="cursor-pointer"
                             />
                           </td>
@@ -846,7 +847,12 @@ const DataTable = ({ data, type, logo_dev_key }) => {
                           <Link
                             to={{
                               pathname: "/charts",
-                              state: { symbol: item.symbol },
+                              state: {
+                                symbol:
+                                  type === ("show_list" || "show_watchlist")
+                                    ? item.ticker
+                                    : item.symbol,
+                              },
                             }}
                             onClick={function () {
                               localStorage.setItem("name", item.desc);
