@@ -1,25 +1,16 @@
 import { Link } from "react-router-dom";
-import React, { useState, useEffect, Fragment } from "react";
-import Switch from "react-input-switch";
+import React, { useState, useEffect } from "react";
 import Popover from "@mui/material/Popover";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import { IconContext } from "react-icons";
-import {
-  IoIosHelpCircleOutline,
-  IoIosMusicalNotes,
-  IoIosDownload,
-  IoMdMegaphone,
-} from "react-icons/io";
-import styled from "styled-components";
 import "../../node_modules/bootstrap/dist/css/bootstrap.min.css";
 import "../../node_modules/bootstrap/dist/css/bootstrap.min.css";
 import ReactDOMServer from "react-dom/server";
 import html2pdf from "html2pdf-jspdf2";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { motion } from "framer-motion";
 import axios from "axios";
+import NavigationMenu from "./navigationMenu";
 const kaching = require("../sounds/kaching.ogg");
 const kachingAudio = new Audio(kaching);
 const lobby = require("../sounds/lobby.ogg");
@@ -31,8 +22,18 @@ let debounceTimer;
 function get_nyse(keyWord) {
   return new Promise(function (resolve, reject) {
     axios
+      .post(`${process.env.REACT_APP_API_BASE_URL}/nyse`, `keyWord=${keyWord}`)
+      .then(function (response) {
+        resolve(response.data);
+      });
+  });
+}
+
+function get_nyse1(keyWord) {
+  return new Promise(function (resolve, reject) {
+    axios
       .post(
-        "https://vast-citadel-83110.herokuapp.com/nyse",
+        `${process.env.REACT_APP_API_BASE_URL}/nyse_wo`,
         `keyWord=${keyWord}`
       )
       .then(function (response) {
@@ -41,39 +42,30 @@ function get_nyse(keyWord) {
   });
 }
 
-const StyledLink = styled(Link)`
-  font-family: "Roboto", sans-serif;
-  font-size: 1rem;
-  font-weight: bold;
-  color: #ffffff; /* White text for better contrast against a darkened background */
-  text-align: center;
-  margin: 0 auto;
-  padding: 10px 20px; /* Adds more padding for a balanced look */
-  background-color: rgba(
-    0,
-    0,
-    0,
-    0.5
-  ); /* Dark translucent background to enhance text visibility */
-  background-size: cover; /* Ensure the image covers the entire background */
-  background-position: center; /* Center the image */
-  background-repeat: no-repeat; /* Prevent the image from repeating */
-  border-radius: 8px; /* Rounded corners for a polished look */
-  width: fit-content; /* Ensure the background fits snugly around the text */
-  // box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.5); /* Add depth with a stronger shadow */
-  // text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Adds a subtle shadow to the text for better readability */
-  text-decoration: none;
-  &:hover {
-    background-color: rgba(
-      255,
-      255,
-      255,
-      0.2
-    ); /* Highlight with a lighter background */
-    // box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.7); /* Add more depth on hover */
-    transform: scale(1.05); /* Slightly enlarge the link for emphasis */
-  }
-`;
+const popoverContent = (
+  <>
+    Help
+    <br />
+    <br />
+    listing directory
+    <br />
+    Show the NYSE listing directory
+    <br />
+    <br />
+    watchlist directory
+    <br />
+    show entries stored in watchlist
+    <br />
+    <br />
+    watchlist data fetch
+    <br />
+    retrieve data related to stocks listed in the watchlist Source mode
+    <br />
+    <br />
+    The input box can be used to add a company to the watchlist, delete a
+    company from the watchlist or search for a company in the watchlist.
+  </>
+);
 
 const DataTable = ({ data, type, logo_dev_key }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,10 +119,7 @@ const DataTable = ({ data, type, logo_dev_key }) => {
 
     if (submissionType == "Add") {
       axios
-        .post(
-          "https://vast-citadel-83110.herokuapp.com/add",
-          `keyWord=${ticker}`
-        )
+        .post(`${process.env.REACT_APP_API_BASE_URL}/add`, `keyWord=${ticker}`)
         .then(function (response) {
           if (response.data == true) {
             toast(`${ticker} added to watchlist!!!`);
@@ -141,7 +130,7 @@ const DataTable = ({ data, type, logo_dev_key }) => {
     } else if (submissionType == "Delete") {
       axios
         .post(
-          "https://vast-citadel-83110.herokuapp.com/delete",
+          `${process.env.REACT_APP_API_BASE_URL}/delete`,
           `keyWord=${ticker}`
         )
         .then(function (response) {
@@ -845,16 +834,25 @@ const DataTable = ({ data, type, logo_dev_key }) => {
                       } else if (header == "chart") {
                         return (
                           <Link
-                            to={{
-                              pathname: "/charts",
-                              state: {
-                                symbol:
-                                  type === ("show_list" || "show_watchlist")
-                                    ? item.ticker
-                                    : item.symbol,
-                              },
+                            to="/charts"
+                            state={{
+                              symbol:
+                                type === ("show_list" || "show_watchlist")
+                                  ? item.ticker
+                                  : item.symbol,
+                              name:
+                                type === ("show_list" || "show_watchlist")
+                                  ? item.name
+                                  : item.desc,
                             }}
                             onClick={function () {
+                              console.log(type);
+                              console.log(
+                                "Passed Symbol:",
+                                type === ("show_list" || "show_watchlist")
+                                  ? item.ticker
+                                  : item.symbol
+                              );
                               localStorage.setItem("name", item.desc);
                               localStorage.setItem("symbol", item.symbol);
                             }}
@@ -952,7 +950,8 @@ export default class watchlist extends React.Component {
     } else if (newAlignment == "show_watchlist") {
       this.showWatchlist(event);
     } else if (newAlignment == "watchlist_data") {
-      this.collectWatchlistData(event);
+      //this.collectWatchlistData(event);
+      this.batchData1(event);
     }
     this.setState({ alignment: newAlignment });
   };
@@ -968,7 +967,7 @@ export default class watchlist extends React.Component {
       this.setState({ type: event.target.value });
     }
     axios
-      .get("https://vast-citadel-83110.herokuapp.com/list")
+      .get(`${process.env.REACT_APP_API_BASE_URL}/list`)
       .then(function (response) {
         let body = response.data;
         self.setState({
@@ -983,7 +982,7 @@ export default class watchlist extends React.Component {
     let self = this;
     this.setState({ type: event.target.value });
     axios
-      .get("https://vast-citadel-83110.herokuapp.com/watchlist")
+      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
       .then(function (response) {
         if (typeof response.data === "object") {
           if (response.data.length === 0) {
@@ -1011,49 +1010,129 @@ export default class watchlist extends React.Component {
     let self = this;
 
     axios
-      .get("https://vast-citadel-83110.herokuapp.com/watchlist")
-      .then(function (response) {
-        response.data.forEach((el) => {
-          promises.push(get_nyse(el.ticker));
-        });
+      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
+      .then(async function (response) {
+        const promises = response.data.map((el) => get_nyse1(el.ticker));
 
         kachingAudio.play();
+
         self.setState(
           {
             watchlistArr: [],
             progress: 0, // Initialize progress state
           },
-          function () {
+          async function () {
             const totalPromises = promises.length;
 
+            // Helper function to add delay
+            const delay = (ms) =>
+              new Promise((resolve) => setTimeout(resolve, ms));
+
+            let processedPromises = 0;
+
             for (let i = 0; i < promises.length; i++) {
-              promises[i].then(function (response) {
-                let watchObj = {};
-                watchObj = response;
+              try {
+                const response = await promises[i];
+                console.log(response);
+                const watchObj = response;
+
                 self.setState(
-                  {
-                    watchlistArr: self.state.watchlistArr.concat(watchObj),
+                  (prevState) => ({
+                    watchlistArr: [...prevState.watchlistArr, watchObj],
                     progress: ((i + 1) / totalPromises) * 100, // Update progress
-                  },
-                  function () {
+                  }),
+                  () => {
                     localStorage.setItem(
                       "watchlistArr",
-                      JSON.stringify(this.state.watchlistArr)
+                      JSON.stringify(self.state.watchlistArr)
                     );
-                    this.setState({
+                    self.setState({
                       displayData: {
-                        data: this.state.watchlistArr,
+                        data: self.state.watchlistArr,
                       },
                     });
 
                     kachingAudio.play();
                   }
                 );
-              });
+
+                processedPromises++;
+
+                // Check if we've processed 30 promises and need to introduce a 5-second delay
+                if (processedPromises % 30 === 0) {
+                  console.log(
+                    `Processed 30 promises. Introducing 5 seconds delay.`
+                  );
+                  await delay(5000); // 5 seconds break
+                } else {
+                  await delay(500); // 2 seconds delay for each request
+                }
+              } catch (error) {
+                console.error("Error processing ticker:", error);
+              }
             }
           }
         );
-      });
+      })
+      .catch((error) => console.error("Error fetching watchlist:", error));
+  };
+
+  batchData1 = (event) => {
+    this.setState({ type: event.target.value });
+    const qs = new URLSearchParams();
+    let self = this;
+
+    axios
+      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
+      .then(async function (response) {
+        localStorage.removeItem("watchlistArr");
+        const tickers = response.data.map((el) => el.ticker);
+        console.log(tickers);
+        axios
+          .get(`${process.env.REACT_APP_API_BASE_URL}/nyse_authenticate`)
+          .then(function (response) {
+            qs.set("session_key", response.data.session_key);
+            qs.set("cbid", response.data.cbid);
+
+            let promises = [];
+
+            self.setState({ watchlistArr: [] }, function () {
+              for (let i = 0; i < tickers.length; i++) {
+                qs.set("keyWord", tickers[i]);
+                const promise = axios
+                  .post(`${process.env.REACT_APP_API_BASE_URL}/nyse_wo`, qs)
+                  .then(function (response) {
+                    console.log(`test ${i} response`);
+                    console.log(response.data);
+                    self.setState(
+                      (prevState) => ({
+                        watchlistArr: [
+                          ...prevState.watchlistArr,
+                          response.data,
+                        ],
+                      }),
+                      () => {
+                        localStorage.setItem(
+                          "watchlistArr",
+                          JSON.stringify(self.state.watchlistArr)
+                        );
+                        self.setState({
+                          displayData: {
+                            data: self.state.watchlistArr,
+                          },
+                        });
+
+                        kachingAudio.play();
+                      }
+                    );
+                  });
+                promises.push(promise);
+              }
+              Promise.all(promises);
+            });
+          });
+      })
+      .catch((error) => console.error("Error fetching watchlist:", error));
   };
 
   changeColor = (mode) => {
@@ -1079,7 +1158,7 @@ export default class watchlist extends React.Component {
   ping() {
     let self = this;
     axios
-      .get("https://vast-citadel-83110.herokuapp.com/ping")
+      .get(`${process.env.REACT_APP_API_BASE_URL}/ping`)
       .then(function (response) {
         self.setState({ serverStatus: `Online (last checked: ${new Date()})` });
       })
@@ -1127,6 +1206,7 @@ export default class watchlist extends React.Component {
   }
 
   componentDidMount() {
+    this.setState({ type: "show_list" });
     this.setState({ logo_dev_key: process.env.REACT_APP_LOGO_DEV_KEY });
     let self = this;
     this.setState({ serverStatus: "Retrieving status please wait..." });
@@ -1170,268 +1250,16 @@ export default class watchlist extends React.Component {
 
     return (
       <div className="watchlist">
-        <nav
-          style={{
-            borderBottom: "solid 1px",
-            paddingBottom: "1rem",
-            backgroundImage: `url("https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")`,
-            backgroundSize: "cover",
-            backgroundPosition: "center 60%",
-            position: "sticky",
-            top: 0,
-            width: "100%",
-            zIndex: 1,
-            display: "flex",
-            flexDirection: "column", // Ensure vertical stacking of elements
-            alignItems: "center", // Center align everything horizontally
+        <NavigationMenu
+          title={"Watchlist"}
+          additional={{
+            darkMode: true,
+            help: true,
+            popoverContent: popoverContent,
+            music: true,
+            dictation: true,
           }}
-        >
-          <div className="pt-2">
-            <div style={{ textAlign: "center", padding: "10px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "15px",
-                  backgroundColor: "rgba(0, 0, 0, 0.5)",
-                  borderRadius: "4rem",
-                }}
-              >
-                {/* Watchlist Title */}
-                <h2 style={{ margin: 0, color: "white" }}>Watchlist</h2>
-
-                {/* Bento Menu Icon / X Button */}
-                <div
-                  onClick={this.toggleMenu}
-                  style={{
-                    cursor: "pointer",
-                    width: "40px",
-                    height: "40px",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  {!this.state.isOpen ? (
-                    // 3×3 Dot Grid (Bento Menu)
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gridGap: "4px",
-                        width: "24px",
-                        height: "24px",
-                      }}
-                    >
-                      {[...Array(9)].map((_, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            width: "6px",
-                            height: "6px",
-                            background: "white",
-                            borderRadius: "50%",
-                          }}
-                        ></div>
-                      ))}
-                    </div>
-                  ) : (
-                    // X icon
-                    <div
-                      style={{
-                        fontSize: "28px",
-                        fontWeight: "bold",
-                        color: "white",
-                        lineHeight: "30px",
-                      }}
-                    >
-                      ✕
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Navigation Menu */}
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{
-                  opacity: this.state.isOpen ? 1 : 0,
-                  height: this.state.isOpen ? "auto" : 0,
-                }}
-                transition={{ duration: 0.3 }}
-                style={{
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  paddingTop: "10px",
-                }}
-              >
-                <StyledLink to="/">Home</StyledLink>
-                <StyledLink to="/data">NYSE/NASDAQ data search</StyledLink>
-                <StyledLink to="/radio">Bloomberg Radio</StyledLink>
-                <StyledLink to="/tv">Bloomberg TV</StyledLink>
-                <StyledLink to="/charts">Charts</StyledLink>
-              </motion.div>
-            </div>
-          </div>
-          <div style={{ paddingTop: "20px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "20px",
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                borderRadius: "4rem",
-              }}
-            >
-              {/* Mode Display and Switch */}
-              <div
-                className="pt-10"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                }}
-              >
-                <span
-                  id="modeEmoji"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginTop: "-45px",
-                  }}
-                ></span>
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginTop: "-45px",
-                  }}
-                >
-                  <Fragment>
-                    <span
-                      style={{
-                        color: "white",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {this.state.mode}
-                    </span>
-                    <Switch
-                      on="light"
-                      off="dark"
-                      value={this.state.mode}
-                      onChange={(mode) => this.changeColor(mode)}
-                    />
-                  </Fragment>
-                </span>
-              </div>
-
-              {/* Help Button and Popover */}
-              <span>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    this.setState({ anchorEl: event.currentTarget });
-                  }}
-                >
-                  <IconContext.Provider
-                    value={{
-                      color: "white",
-                      size: 32,
-                      className: "global-class-name",
-                    }}
-                  >
-                    <IoIosHelpCircleOutline />
-                  </IconContext.Provider>
-                </button>
-                <Popover
-                  anchorEl={this.state.anchorEl}
-                  open={open}
-                  id={open ? "simple-popover" : undefined}
-                  onClose={() => {
-                    this.setState({ anchorEl: null });
-                  }}
-                  transformOrigin={{
-                    horizontal: "center",
-                    vertical: "top",
-                  }}
-                  anchorOrigin={{
-                    horizontal: "center",
-                    vertical: "bottom",
-                  }}
-                >
-                  Help
-                  <br />
-                  <br />
-                  listing directory
-                  <br />
-                  Show the NYSE listing directory
-                  <br />
-                  <br />
-                  watchlist directory
-                  <br />
-                  show entries stored in watchlist
-                  <br />
-                  <br />
-                  watchlist data fetch
-                  <br />
-                  retrieve data related to stocks listed in the watchlist Source
-                  mode
-                  <br />
-                  <br />
-                  The input box can be used to add a company to the watchlist,
-                  delete a company from the watchlist or search for a company in
-                  the watchlist.
-                </Popover>
-              </span>
-
-              {/* Music Button */}
-              <span>
-                <button
-                  id="lobby_music"
-                  type="button"
-                  onClick={(event) => {
-                    this.setState(
-                      { lobbyPlay: !this.state.lobbyPlay },
-                      function () {
-                        this.setState({ lobbyPlayHandler: !lobbyPlayHandler });
-                      }
-                    );
-                  }}
-                >
-                  <IconContext.Provider
-                    value={{
-                      color: "white",
-                      size: 32,
-                      className: "global-class-name",
-                    }}
-                  >
-                    <IoIosMusicalNotes />
-                  </IconContext.Provider>
-                </button>
-              </span>
-              <span>
-                <button onClick={() => this.readoutStocks()}>
-                  <IconContext.Provider
-                    value={{
-                      color: "white",
-                      size: 32,
-                      className: "global-class-name",
-                    }}
-                  >
-                    <IoMdMegaphone />
-                  </IconContext.Provider>
-                </button>
-              </span>
-            </div>
-          </div>
-        </nav>
+        />
 
         <div style={{ textAlign: "center" }}>
           <p
