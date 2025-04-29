@@ -1,0 +1,53 @@
+div #main {
+  color: green;
+  margin: 0 auto;
+}
+
+#header {
+  padding-bottom: 3rem;
+  text-align: center;
+}
+
+.grid1 {
+  padding: 20px;
+  text-align: center;
+}
+
+div #nyse,
+div #nasdaq,
+div #marquee {
+  padding-top: 0.2rem;
+}
+
+div #nyse,
+#nasdaq,
+#col1,
+#col2,
+#col3 {
+  text-align: center;
+  margin: 0 auto;
+}
+
+h2 #data-title {
+  text-align: center;
+}
+
+#main {
+  height: 100vh;
+  width: 100%;
+}
+
+p {
+  text-align: center;
+}
+
+table#data,
+td#data {
+  border: 2px solid green;
+  text-align: center;
+  margin: auto;
+}
+
+#table-div {
+  padding-top: 2rem;
+}
