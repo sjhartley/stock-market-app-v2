@@ -6,6 +6,7 @@ import App from "./App";
 import Watchlist from "./routes/watchlist";
 import Charts from "./routes/charts";
 import Radio from "./routes/radio";
+import Tv from "./routes/tv";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -15,6 +16,7 @@ root.render(
       <Route path="watchlist" element={<Watchlist />} />
       <Route path="charts" element={<Charts />} />
       <Route path="radio" element={<Radio />} />
+      <Route path="tv" element={<Tv />} />
     </Routes>
   </BrowserRouter>
 );
