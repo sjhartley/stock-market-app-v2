@@ -114,7 +114,9 @@ class NavigationMenu extends Component {
   };
 
   changeColor = (mode) => {
-    this.props.onChangeMode(mode);
+    if (this.props.onChangeMode) {
+      this.props.onChangeMode(mode);
+    }
     localStorage.setItem("mode", mode);
     this.setState({ mode: mode });
     let color = "";
