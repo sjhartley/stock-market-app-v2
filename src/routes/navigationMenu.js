@@ -114,6 +114,7 @@ class NavigationMenu extends Component {
   };
 
   changeColor = (mode) => {
+    this.props.onChangeMode(mode);
     localStorage.setItem("mode", mode);
     this.setState({ mode: mode });
     let color = "";
@@ -159,7 +160,6 @@ class NavigationMenu extends Component {
       lobbyAudio.pause();
     }
     const additional = this.props.additional;
-    console.log(additional);
     return (
       <nav
         style={{

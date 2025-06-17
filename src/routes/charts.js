@@ -150,6 +150,10 @@ class Charts extends React.Component {
     }
   };
 
+  handleModeChangeNavigationMenu = (newMode) => {
+    this.setState({ mode: newMode });
+  };
+
   componentDidMount() {
     const propsSymbol = this.props?.location?.state?.symbol || "AMZN";
     const propsName = this.props?.location?.state?.name || "AMAZON COM INC";
@@ -168,7 +172,9 @@ class Charts extends React.Component {
     document.body.style.backgroundSize = "100% 100vh";
     let local_mode = localStorage.getItem("mode");
     if (local_mode !== null) {
-      this.changeColor(local_mode);
+      this.setState({ mode: local_mode }, () => {
+        this.changeColor(this.state.mode);
+      });
     } else {
       this.changeColor(this.state.mode);
     }
@@ -286,9 +292,18 @@ class Charts extends React.Component {
       <div>
         <NavigationMenu
           title={"Charts"}
+          onChangeMode={(newMode) =>
+            this.handleModeChangeNavigationMenu(newMode)
+          }
           additional={{ darkMode: true, music: true, dictation: false }}
         />
-        <div style={{ textAlign: "center", fontSize: "28px", color: "white" }}>
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: "28px",
+            color: this.state.mode == "dark" ? "white" : "black",
+          }}
+        >
           Historical quotes for {this.state.symbol} / {this.state.name}
         </div>
         <div style={{ paddingTop: "0em" }}>
@@ -299,16 +314,26 @@ class Charts extends React.Component {
               paddingBottom: "2rem",
             }}
           >
-            <label style={{ color: "white" }}>
+            <label
+              style={{ color: this.state.mode == "dark" ? "white" : "black" }}
+            >
               Ticker:{" "}
               <input
-                style={{ color: "black" }}
+                style={{
+                  color: "black",
+                  border: this.state.mode == "light" ? "1px solid black" : null,
+                }}
                 ref={this.myRef}
                 type="text"
                 value={this.state.value}
               />
             </label>
-            <input className="pl-4" type="submit" value="Submit" />
+            <input
+              style={{ color: this.state.mode == "dark" ? "white" : "black" }}
+              className="pl-4"
+              type="submit"
+              value="Submit"
+            />
           </form>
           {this.state.loading && (
             <div
