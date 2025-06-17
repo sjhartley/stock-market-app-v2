@@ -984,6 +984,8 @@ export default class watchlist extends React.Component {
     axios
       .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
       .then(function (response) {
+        console.log("Response");
+        console.log(response);
         if (typeof response.data === "object") {
           if (response.data.length === 0) {
             this.setState({
@@ -992,6 +994,7 @@ export default class watchlist extends React.Component {
               },
             });
           } else {
+            console.log(response.data);
             self.setState({
               displayData: {
                 data: response.data,
@@ -1205,6 +1208,10 @@ export default class watchlist extends React.Component {
     }
   }
 
+  handleModeChangeNavigationMenu = (newMode) => {
+    this.setState({ mode: newMode });
+  };
+
   componentDidMount() {
     this.setState({ type: "show_list" });
     this.setState({ logo_dev_key: process.env.REACT_APP_LOGO_DEV_KEY });
@@ -1252,6 +1259,9 @@ export default class watchlist extends React.Component {
       <div className="watchlist">
         <NavigationMenu
           title={"Watchlist"}
+          onChangeMode={(newMode) =>
+            this.handleModeChangeNavigationMenu(newMode)
+          }
           additional={{
             darkMode: true,
             help: true,
@@ -1263,7 +1273,10 @@ export default class watchlist extends React.Component {
 
         <div style={{ textAlign: "center" }}>
           <p
-            style={{ fontSize: "12px", color: "white" }}
+            style={{
+              fontSize: "12px",
+              color: this.state.mode == "dark" ? "white" : "black",
+            }}
           >{`Server Status: ${this.state.serverStatus}`}</p>
         </div>
         <div className="pb-2">
