@@ -137,6 +137,10 @@ class NavigationMenu extends Component {
   };
 
   componentDidMount() {
+    let localMode = localStorage.getItem("mode");
+    if (localMode != null) {
+      this.setState({ mode: localMode });
+    }
     this.setState({ additional: this.props.additional });
     this.setState({ title: this.props.title });
   }
