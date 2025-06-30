@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Popover from "@mui/material/Popover";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -67,7 +67,99 @@ const popoverContent = (
   </>
 );
 
-const DataTable = ({ data, type, logo_dev_key }) => {
+function ProgressBar({ filteredDataLength, totalRecords }) {
+  const [width, setWidth] = useState(0);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    setWidth(
+      totalRecords && filteredDataLength
+        ? (filteredDataLength / totalRecords) * 100
+        : 0
+    );
+  }, [filteredDataLength, totalRecords]);
+
+  // Hide progress bar if fully loaded
+  const isComplete = totalRecords && filteredDataLength === totalRecords;
+
+  if (isComplete) return null;
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "20px",
+        backgroundColor: "#eee",
+        borderRadius: "10px",
+        overflow: "hidden",
+        marginBottom: "1rem",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          height: "100%",
+          backgroundColor: "#000",
+          width: `${width}%`,
+          transition: firstRender.current ? "none" : "width 0.5s ease",
+        }}
+        onTransitionEnd={() => {
+          if (firstRender.current) firstRender.current = false;
+        }}
+      >
+        <div
+          style={{ position: "relative", height: "100%", overflow: "visible" }}
+        >
+          <span className="bubble" />
+          <span className="bubble delay-1" />
+          <span className="bubble delay-2" />
+        </div>
+      </div>
+
+      <style>{`
+        .bubble {
+          position: absolute;
+          top: 50%;
+          left: -15px;
+          width: 14px;
+          height: 14px;
+          background: #fff;
+          border-radius: 50%;
+          opacity: 0.7;
+          transform: translateY(-50%);
+          animation: bubbleMove 2s linear infinite;
+        }
+        .bubble.delay-1 {
+          animation-delay: 0.7s;
+        }
+        .bubble.delay-2 {
+          animation-delay: 1.4s;
+        }
+        @keyframes bubbleMove {
+          0% {
+            left: -15px;
+            opacity: 0.7;
+            transform: translateY(-50%) scale(0.9);
+          }
+          50% {
+            opacity: 1;
+            transform: translateY(-60%) scale(1);
+          }
+          100% {
+            left: 100%;
+            opacity: 0;
+            transform: translateY(-50%) scale(0.9);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState(null);
@@ -719,6 +811,14 @@ const DataTable = ({ data, type, logo_dev_key }) => {
             </div>
           </Popover>
         </div>
+        <div>
+          {alignment === "watchlist_data" && totalRecords > 0 && (
+            <ProgressBar
+              filteredDataLength={filteredData.length}
+              totalRecords={totalRecords}
+            />
+          )}
+        </div>
         {/* Main Data Table */}
         <div
           style={{
@@ -804,6 +904,10 @@ const DataTable = ({ data, type, logo_dev_key }) => {
                 ))}
               </tr>
             </thead>
+            {/* Progress bar */}
+            {/* Black & White Progress Bar with Bubble Effect */}
+            {/* {alignment === "watchlist_data" && totalRecords > 0 && ( */}
+
             <tbody>
               {filteredData.length > 0 ? (
                 filteredData.map((item, index) => (
@@ -812,7 +916,7 @@ const DataTable = ({ data, type, logo_dev_key }) => {
                     className={`hover:bg-blue-100 ${getRowColor(item)}`}
                   >
                     {headers.map((header) => {
-                      if (header == "logo") {
+                      if (header === "logo") {
                         return (
                           <td
                             key={header}
@@ -831,34 +935,34 @@ const DataTable = ({ data, type, logo_dev_key }) => {
                             />
                           </td>
                         );
-                      } else if (header == "chart") {
+                      } else if (header === "chart") {
                         return (
-                          <Link
-                            to="/charts"
-                            state={{
-                              symbol:
-                                type === ("show_list" || "show_watchlist")
-                                  ? item.ticker
-                                  : item.symbol,
-                              name:
-                                type === ("show_list" || "show_watchlist")
-                                  ? item.name
-                                  : item.desc,
-                            }}
-                            onClick={function () {
-                              console.log(type);
-                              console.log(
-                                "Passed Symbol:",
-                                type === ("show_list" || "show_watchlist")
-                                  ? item.ticker
-                                  : item.symbol
-                              );
-                              localStorage.setItem("name", item.desc);
-                              localStorage.setItem("symbol", item.symbol);
-                            }}
+                          <td
+                            key={header}
+                            className="px-6 py-4 border-b border-gray-200 text-sm text-blue-600"
                           >
-                            View chart
-                          </Link>
+                            <Link
+                              to="/charts"
+                              state={{
+                                symbol:
+                                  type === "show_list" ||
+                                  type === "show_watchlist"
+                                    ? item.ticker
+                                    : item.symbol,
+                                name:
+                                  type === "show_list" ||
+                                  type === "show_watchlist"
+                                    ? item.name
+                                    : item.desc,
+                              }}
+                              onClick={() => {
+                                localStorage.setItem("name", item.desc);
+                                localStorage.setItem("symbol", item.symbol);
+                              }}
+                            >
+                              View chart
+                            </Link>
+                          </td>
                         );
                       } else {
                         return (
@@ -922,6 +1026,7 @@ export default class watchlist extends React.Component {
       anchorEl: null,
       serverStatus: null,
       watchlistArr: [],
+      totalRecords: 0,
       progress: null,
       nyse_keys: null,
       showShow: false,
@@ -971,6 +1076,7 @@ export default class watchlist extends React.Component {
       .then(function (response) {
         let body = response.data;
         self.setState({
+          totalRecords: body.length,
           displayData: {
             data: body,
           },
@@ -984,8 +1090,6 @@ export default class watchlist extends React.Component {
     axios
       .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
       .then(function (response) {
-        console.log("Response");
-        console.log(response);
         if (typeof response.data === "object") {
           if (response.data.length === 0) {
             this.setState({
@@ -994,8 +1098,8 @@ export default class watchlist extends React.Component {
               },
             });
           } else {
-            console.log(response.data);
             self.setState({
+              totalRecords: response.data.length,
               displayData: {
                 data: response.data,
               },
@@ -1036,7 +1140,6 @@ export default class watchlist extends React.Component {
             for (let i = 0; i < promises.length; i++) {
               try {
                 const response = await promises[i];
-                console.log(response);
                 const watchObj = response;
 
                 self.setState(
@@ -1063,9 +1166,6 @@ export default class watchlist extends React.Component {
 
                 // Check if we've processed 30 promises and need to introduce a 5-second delay
                 if (processedPromises % 30 === 0) {
-                  console.log(
-                    `Processed 30 promises. Introducing 5 seconds delay.`
-                  );
                   await delay(5000); // 5 seconds break
                 } else {
                   await delay(500); // 2 seconds delay for each request
@@ -1090,7 +1190,7 @@ export default class watchlist extends React.Component {
       .then(async function (response) {
         localStorage.removeItem("watchlistArr");
         const tickers = response.data.map((el) => el.ticker);
-        console.log(tickers);
+        const totalRecords = response.data.length;
         axios
           .get(`${process.env.REACT_APP_API_BASE_URL}/nyse_authenticate`)
           .then(function (response) {
@@ -1099,40 +1199,41 @@ export default class watchlist extends React.Component {
 
             let promises = [];
 
-            self.setState({ watchlistArr: [] }, function () {
-              for (let i = 0; i < tickers.length; i++) {
-                qs.set("keyWord", tickers[i]);
-                const promise = axios
-                  .post(`${process.env.REACT_APP_API_BASE_URL}/nyse_wo`, qs)
-                  .then(function (response) {
-                    console.log(`test ${i} response`);
-                    console.log(response.data);
-                    self.setState(
-                      (prevState) => ({
-                        watchlistArr: [
-                          ...prevState.watchlistArr,
-                          response.data,
-                        ],
-                      }),
-                      () => {
-                        localStorage.setItem(
-                          "watchlistArr",
-                          JSON.stringify(self.state.watchlistArr)
-                        );
-                        self.setState({
-                          displayData: {
-                            data: self.state.watchlistArr,
-                          },
-                        });
+            self.setState(
+              { watchlistArr: [], totalRecords: totalRecords },
+              function () {
+                for (let i = 0; i < tickers.length; i++) {
+                  qs.set("keyWord", tickers[i]);
+                  const promise = axios
+                    .post(`${process.env.REACT_APP_API_BASE_URL}/nyse_wo`, qs)
+                    .then(function (response) {
+                      self.setState(
+                        (prevState) => ({
+                          watchlistArr: [
+                            ...prevState.watchlistArr,
+                            response.data,
+                          ],
+                        }),
+                        () => {
+                          localStorage.setItem(
+                            "watchlistArr",
+                            JSON.stringify(self.state.watchlistArr)
+                          );
+                          self.setState({
+                            displayData: {
+                              data: self.state.watchlistArr,
+                            },
+                          });
 
-                        kachingAudio.play();
-                      }
-                    );
-                  });
-                promises.push(promise);
+                          kachingAudio.play();
+                        }
+                      );
+                    });
+                  promises.push(promise);
+                }
+                Promise.all(promises);
               }
-              Promise.all(promises);
-            });
+            );
           });
       })
       .catch((error) => console.error("Error fetching watchlist:", error));
@@ -1332,6 +1433,8 @@ export default class watchlist extends React.Component {
         >
           {
             <DataTable
+              totalRecords={this.state.totalRecords}
+              alignment={this.state.alignment}
               data={this.state.displayData}
               type={this.state.type}
               logo_dev_key={this.state.logo_dev_key}
