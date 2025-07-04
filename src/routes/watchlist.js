@@ -252,71 +252,60 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
   };
 
   useEffect(() => {
-    // Step 1: Populate headers from `data`
     const allHeadersSet = new Set();
     rows.forEach((row) => {
       Object.keys(row).forEach((header) => allHeadersSet.add(header));
     });
-    let initialHeaders = Array.from(allHeadersSet);
+    const initialHeaders = Array.from(allHeadersSet);
 
-    if (type == "watchlist_data") {
-      // Retrieve stored headers from local storage
-      let storedHeaders = localStorage.getItem("headers");
-
-      // Safeguard: Parse and set headersWithCheckbox, or default to initialHeaders
+    if (type === "watchlist_data") {
+      const storedHeaders = localStorage.getItem("headers");
       const parsedHeaders = storedHeaders ? JSON.parse(storedHeaders) : null;
-      const headersWithCheckbox =
+
+      const headersWithCheckboxLocal =
         parsedHeaders ||
         initialHeaders.map((header) => ({
           name: header,
-          checked: true, // Default to checked if no stored headers
+          checked: true,
         }));
 
-      setHeadersWithCheckbox(headersWithCheckbox);
-    }
-
-    initialHeaders.map((header) => ({
-      name: header,
-      checked: true, // Default to checked if no stored headers
-    }));
-
-    // Step 2: Filter headers based on `checkedHeaders`
-    initialHeaders = initialHeaders.filter((header) => {
-      const headerObj = headersWithCheckbox.find((h) => h.name === header);
-      return headerObj ? headerObj.checked : true; // Include if checked or not in `checkedHeaders`
-    });
-
-    // Step 3: Reorder the headers, moving "logo" after "symbol"
-    if (initialHeaders.includes("symbol") && initialHeaders.includes("logo")) {
-      const symbolIndex = initialHeaders.indexOf("symbol");
-      const logoIndex = initialHeaders.indexOf("logo");
-
-      // Remove 'logo' from the array
-      initialHeaders.splice(logoIndex, 1);
-      // Insert 'logo' after 'symbol'
-      initialHeaders.splice(symbolIndex + 1, 0, "logo");
-    }
-
-    initialHeaders.push("chart");
-    setHeaders(initialHeaders);
-
-    // Step 4: Reset filter if selected header changes to a non-numeric one
-    if (selectedHeader && !isNumericColumn(selectedHeader)) {
-      setSearchFilter("contains"); // Reset filter to a non-numeric option
-      setSearchTerm("");
-      setSecondSearchTerm(""); // Clear the second search term for non-numeric headers
-    }
-  }, [data, selectedHeader]); // Re-run when data or selected header changes
-
-  useEffect(() => {
-    // Update headers to include only items where checked is true
-    if (type == "watchlist_data") {
-      setHeaders(
-        headersWithCheckbox
-          .filter((item) => item.checked)
-          .map((item) => item.name)
+      setHeadersWithCheckbox(headersWithCheckboxLocal);
+    } else {
+      // If not watchlist_data, default all headers to checked
+      setHeadersWithCheckbox(
+        initialHeaders.map((header) => ({
+          name: header,
+          checked: true,
+        }))
       );
     }
+
+    // Reset filter if non-numeric
+    if (selectedHeader && !isNumericColumn(selectedHeader)) {
+      setSearchFilter("contains");
+      setSearchTerm("");
+      setSecondSearchTerm("");
+    }
+  }, [data, selectedHeader, type]);
+
+  useEffect(() => {
+    if (!headersWithCheckbox || headersWithCheckbox.length === 0) return;
+
+    let finalHeaders = headersWithCheckbox
+      .filter((h) => h.checked)
+      .map((h) => h.name);
+
+    if (finalHeaders.includes("symbol") && finalHeaders.includes("logo")) {
+      const symbolIndex = finalHeaders.indexOf("symbol");
+      finalHeaders = finalHeaders.filter((h) => h !== "logo");
+      finalHeaders.splice(symbolIndex + 1, 0, "logo");
+    }
+
+    if (!finalHeaders.includes("chart")) {
+      finalHeaders.push("chart");
+    }
+
+    setHeaders(finalHeaders);
   }, [headersWithCheckbox]);
 
   if (rows.length === 0) {
@@ -909,7 +898,26 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
             {/* {alignment === "watchlist_data" && totalRecords > 0 && ( */}
 
             <tbody>
-              {filteredData.length > 0 ? (
+              {filteredData.length !== totalRecords ? (
+                // Render skeleton rows
+                Array.from({ length: 5 }).map((_, index) => (
+                  <tr key={`skeleton-${index}`} className="animate-pulse">
+                    {headers.map((header, i) => (
+                      <td
+                        key={i}
+                        className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
+                      >
+                        {header === "logo" ? (
+                          <div className="w-[60px] h-[60px] bg-gray-300 rounded mx-auto"></div>
+                        ) : (
+                          <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : filteredData.length > 0 ? (
+                // Render real rows
                 filteredData.map((item, index) => (
                   <tr
                     key={index}
