@@ -308,6 +308,15 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
     setHeaders(finalHeaders);
   }, [headersWithCheckbox]);
 
+  useEffect(() => {
+    const handleDragEnd = () => {
+      setDraggedHeader(null);
+    };
+
+    window.addEventListener("dragend", handleDragEnd);
+    return () => window.removeEventListener("dragend", handleDragEnd);
+  }, []);
+
   if (rows.length === 0) {
     return (
       <div className="container mx-auto p-4">
@@ -434,65 +443,30 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
     setDraggedHeader(header);
   };
 
-  const handleDragOver = (e, targetHeader, rect) => {
-    e.preventDefault();
-
-    const mouseX = e.clientX;
-    const isLeftHalf = mouseX < rect.left + rect.width / 2;
-
-    setIsDraggingLeft(isLeftHalf);
-    setHoveredHeader(targetHeader);
-
-    if (draggedHeader && draggedHeader !== targetHeader) {
-      const newHeaders = [...headers];
-      const draggedIndex = newHeaders.indexOf(draggedHeader);
-      const targetIndex = newHeaders.indexOf(targetHeader);
-
-      // Remove the dragged header and insert it before/after based on mouse position
-      newHeaders.splice(draggedIndex, 1);
-      newHeaders.splice(
-        isLeftHalf ? targetIndex : targetIndex + 1,
-        0,
-        draggedHeader
-      );
-
-      setHeaders(newHeaders);
-    }
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Important!
   };
 
-  const handleDrop = () => {
+  const handleDrop = (targetHeader) => {
+    if (!draggedHeader || draggedHeader === targetHeader) return;
+
+    const draggedIndex = headersWithCheckbox.findIndex(
+      (h) => h.name === draggedHeader
+    );
+    const targetIndex = headersWithCheckbox.findIndex(
+      (h) => h.name === targetHeader
+    );
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newHeaders = [...headersWithCheckbox];
+    const [moved] = newHeaders.splice(draggedIndex, 1);
+    newHeaders.splice(targetIndex, 0, moved);
+
+    setHeadersWithCheckbox(newHeaders);
+    localStorage.setItem("headers", JSON.stringify(newHeaders)); // optional
+
     setDraggedHeader(null);
-    setHoveredHeader(null);
-    setIsDraggingLeft(false);
-
-    // Update headersWithCheckbox to match the new headers order
-    setHeadersWithCheckbox((prevHeadersWithCheckbox) => {
-      // Separate checked and unchecked elements
-      const checkedElements = prevHeadersWithCheckbox.filter((h) => h.checked);
-
-      // Create a map of checked elements for fast lookup
-      const headerMap = new Map(checkedElements.map((h) => [h.name, h]));
-
-      // Reorder only checked elements based on the `headers` array
-      const reorderedCheckedElements = headers
-        .map((header) => {
-          const headerInfo = headerMap.get(header);
-          return headerInfo
-            ? { name: header, checked: headerInfo.checked }
-            : null;
-        })
-        .filter(Boolean); // Filter out null values
-
-      // Reinsert unchecked elements in their original positions
-      const result = prevHeadersWithCheckbox.map((header) => {
-        return header.checked
-          ? reorderedCheckedElements.shift() // Pull from reordered checked elements
-          : header; // Keep unchecked elements as is
-      });
-      // Optionally, persist the updated order in local storage
-      localStorage.setItem("headers", JSON.stringify(result));
-      return result;
-    });
   };
 
   const handleDragLeave = () => {
@@ -809,188 +783,189 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
           )}
         </div>
         {/* Main Data Table */}
-        <div
-          style={{
-            maxHeight: "60vh",
-          }}
-          className="overflow-x-auto"
-        >
+        <div style={{ maxHeight: "60vh" }} className="overflow-x-auto">
           <table
             className="min-w-full bg-white border border-gray-300"
             style={{
-              width: "800px", // Set a fixed width for the table
-              tableLayout: "auto", // Ensures columns take up equal width or respect set widths
+              width: "800px",
+              tableLayout: "auto",
             }}
           >
             <thead>
               <tr>
-                {headers.map((header) => (
-                  <th
-                    key={header}
-                    className="relative px-2 py-1 border-b-2 border-gray-200 text-left text-blue-500 tracking-wider cursor-pointer text-sm align-middle sticky top-0 bg-white"
-                    draggable
-                    onDragStart={() => handleDragStart(header)}
-                    onDragOver={(e) =>
-                      handleDragOver(
-                        e,
-                        header,
-                        e.target.getBoundingClientRect()
-                      )
-                    }
-                    onDrop={handleDrop}
-                    onDragLeave={handleDragLeave}
-                    onClick={() => handleSort(header)}
-                    style={{
-                      transition: "margin 0.2s ease", // Smooth transition when dragging
-                      marginLeft:
-                        draggedHeader &&
-                        hoveredHeader === header &&
-                        isDraggingLeft
-                          ? "10px"
-                          : "0",
-                      marginRight:
-                        draggedHeader &&
-                        hoveredHeader === header &&
-                        !isDraggingLeft
-                          ? "10px"
-                          : "0",
-                      backgroundColor:
-                        draggedHeader === header ? "lightgray" : "transparent", // Highlight the dragged header
-                    }}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="flex-grow text-left">
-                        {header.charAt(0).toUpperCase() + header.slice(1)}
-                      </span>
-                      <div className="flex flex-col items-center">
-                        <div
-                          style={{
-                            color:
-                              sortColumn === header && sortDirection === "asc"
-                                ? "black"
-                                : "#D1D5DB",
-                            fontSize: "10px",
-                            userSelect: "none",
-                          }}
-                        >
-                          &#9650; {/* Up Arrow */}
-                        </div>
-                        <div
-                          style={{
-                            color:
-                              sortColumn === header && sortDirection === "desc"
-                                ? "black"
-                                : "#D1D5DB",
-                            fontSize: "10px",
-                            userSelect: "none",
-                          }}
-                        >
-                          &#9660; {/* Down Arrow */}
+                {headersWithCheckbox
+                  .filter((h) => h.checked)
+                  .map((headerObj) => (
+                    <th
+                      key={headerObj.name}
+                      className="relative px-2 py-1 border-b-2 border-gray-200 text-left text-blue-500 tracking-wider cursor-pointer text-sm align-middle sticky top-0 bg-white"
+                      draggable
+                      onDragStart={() => handleDragStart(headerObj.name)}
+                      onDragOver={(e) => handleDragOver(e)}
+                      onDrop={() => handleDrop(headerObj.name)}
+                      onClick={() => handleSort(headerObj.name)}
+                      style={{
+                        transition: "margin 0.2s ease",
+                        marginLeft:
+                          draggedHeader &&
+                          hoveredHeader === headerObj.name &&
+                          isDraggingLeft
+                            ? "10px"
+                            : "0",
+                        marginRight:
+                          draggedHeader &&
+                          hoveredHeader === headerObj.name &&
+                          !isDraggingLeft
+                            ? "10px"
+                            : "0",
+                        backgroundColor:
+                          draggedHeader === headerObj.name
+                            ? "lightgray"
+                            : "transparent",
+                      }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="flex-grow text-left">
+                          {headerObj.name.charAt(0).toUpperCase() +
+                            headerObj.name.slice(1)}
+                        </span>
+                        <div className="flex flex-col items-center">
+                          <div
+                            style={{
+                              color:
+                                sortColumn === headerObj.name &&
+                                sortDirection === "asc"
+                                  ? "black"
+                                  : "#D1D5DB",
+                              fontSize: "10px",
+                              userSelect: "none",
+                            }}
+                          >
+                            ▲
+                          </div>
+                          <div
+                            style={{
+                              color:
+                                sortColumn === headerObj.name &&
+                                sortDirection === "desc"
+                                  ? "black"
+                                  : "#D1D5DB",
+                              fontSize: "10px",
+                              userSelect: "none",
+                            }}
+                          >
+                            ▼
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </th>
-                ))}
+                    </th>
+                  ))}
               </tr>
             </thead>
-            {/* Progress bar */}
-            {/* Black & White Progress Bar with Bubble Effect */}
-            {/* {alignment === "watchlist_data" && totalRecords > 0 && ( */}
 
             <tbody>
               {filteredData.length !== totalRecords ? (
-                // Render skeleton rows
+                // Skeleton rows
                 Array.from({ length: 5 }).map((_, index) => (
                   <tr key={`skeleton-${index}`} className="animate-pulse">
-                    {headers.map((header, i) => (
-                      <td
-                        key={i}
-                        className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
-                      >
-                        {header === "logo" ? (
-                          <div className="w-[60px] h-[60px] bg-gray-300 rounded mx-auto"></div>
-                        ) : (
-                          <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
-                        )}
-                      </td>
-                    ))}
+                    {headersWithCheckbox
+                      .filter((h) => h.checked)
+                      .map((h, i) => (
+                        <td
+                          key={i}
+                          className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
+                        >
+                          {h.name === "logo" ? (
+                            <div className="w-[60px] h-[60px] bg-gray-300 rounded mx-auto"></div>
+                          ) : (
+                            <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
+                          )}
+                        </td>
+                      ))}
                   </tr>
                 ))
               ) : filteredData.length > 0 ? (
-                // Render real rows
+                // Actual data rows
                 filteredData.map((item, index) => (
                   <tr
                     key={index}
                     className={`hover:bg-blue-100 ${getRowColor(item)}`}
                   >
-                    {headers.map((header) => {
-                      if (header === "logo") {
-                        return (
-                          <td
-                            key={header}
-                            className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
-                          >
-                            <img
-                              src={item.logo}
-                              alt="--"
-                              style={{
-                                width: "60px",
-                                height: "60px",
-                                objectFit: "contain",
-                              }}
-                              onClick={() => handleImageClick(item.logo)}
-                              className="cursor-pointer"
-                            />
-                          </td>
-                        );
-                      } else if (header === "chart") {
-                        return (
-                          <td
-                            key={header}
-                            className="px-6 py-4 border-b border-gray-200 text-sm text-blue-600"
-                          >
-                            <Link
-                              to="/charts"
-                              state={{
-                                symbol:
-                                  type === "show_list" ||
-                                  type === "show_watchlist"
-                                    ? item.ticker
-                                    : item.symbol,
-                                name:
-                                  type === "show_list" ||
-                                  type === "show_watchlist"
-                                    ? item.name
-                                    : item.desc,
-                              }}
-                              onClick={() => {
-                                localStorage.setItem("name", item.desc);
-                                localStorage.setItem("symbol", item.symbol);
-                              }}
+                    {headersWithCheckbox
+                      .filter((h) => h.checked)
+                      .map((h) => {
+                        const header = h.name;
+
+                        if (header === "logo") {
+                          return (
+                            <td
+                              key={header}
+                              className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
                             >
-                              View chart
-                            </Link>
-                          </td>
-                        );
-                      } else {
-                        return (
-                          <td
-                            key={header}
-                            className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
-                          >
-                            {item[header] !== null && item[header] !== undefined
-                              ? item[header].toString()
-                              : "--"}
-                          </td>
-                        );
-                      }
-                    })}
+                              <img
+                                src={item.logo}
+                                alt="--"
+                                style={{
+                                  width: "60px",
+                                  height: "60px",
+                                  objectFit: "contain",
+                                }}
+                                onClick={() => handleImageClick(item.logo)}
+                                className="cursor-pointer"
+                              />
+                            </td>
+                          );
+                        } else if (header === "chart") {
+                          return (
+                            <td
+                              key={header}
+                              className="px-6 py-4 border-b border-gray-200 text-sm text-blue-600"
+                            >
+                              <Link
+                                to="/charts"
+                                state={{
+                                  symbol:
+                                    type === "show_list" ||
+                                    type === "show_watchlist"
+                                      ? item.ticker
+                                      : item.symbol,
+                                  name:
+                                    type === "show_list" ||
+                                    type === "show_watchlist"
+                                      ? item.name
+                                      : item.desc,
+                                }}
+                                onClick={() => {
+                                  localStorage.setItem("name", item.desc);
+                                  localStorage.setItem("symbol", item.symbol);
+                                }}
+                              >
+                                View chart
+                              </Link>
+                            </td>
+                          );
+                        } else {
+                          return (
+                            <td
+                              key={header}
+                              className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
+                            >
+                              {item[header] !== null &&
+                              item[header] !== undefined
+                                ? item[header].toString()
+                                : "--"}
+                            </td>
+                          );
+                        }
+                      })}
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td
-                    colSpan={headers.length}
+                    colSpan={
+                      headersWithCheckbox.filter((h) => h.checked).length
+                    }
                     className="px-6 py-4 border-b border-gray-200 text-center text-sm text-gray-500"
                   >
                     No results found
@@ -1000,6 +975,7 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
             </tbody>
           </table>
         </div>
+
         {/* Popup Modal for Larger Image */}
         {isPopupOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
