@@ -67,6 +67,56 @@ const popoverContent = (
   </>
 );
 
+const RowPopoverToggle = ({ selectedRowData }) => {
+  const [selectedMode, setSelectedMode] = useState("row_data");
+
+  const handleChange = (event, newMode) => {
+    if (newMode !== null) {
+      setSelectedMode(newMode);
+    }
+  };
+
+  return (
+    <div className="pb-2">
+      <div>
+        <ToggleButtonGroup
+          color="primary"
+          value={selectedMode}
+          exclusive
+          onChange={handleChange}
+          aria-label="Row View Mode"
+        >
+          <ToggleButton value="row_data">Row Data</ToggleButton>
+          <ToggleButton value="historical_market_data">
+            View historical market data
+          </ToggleButton>
+          <ToggleButton value="dictation_row_data">
+            Read out row data
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </div>
+      <div>
+        {selectedMode === "row_data" && (
+          <div className="p-4">
+            {/* <div className="text-sm font-semibold">Row Data</div> */}
+            <pre className="text-xs text-gray-800 whitespace-pre-wrap">
+              {JSON.stringify(selectedRowData, null, 2)}
+            </pre>
+          </div>
+        )}
+        {selectedMode === "historical_market_data" && (
+          <div>
+            Render Chart Here/Navigate to charts page (development in progress)
+          </div>
+        )}
+        {selectedMode === "dictation_row_data" && (
+          <div>Trigger TTS (development in progress)</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 function ProgressBar({ filteredDataLength, totalRecords }) {
   const [width, setWidth] = useState(0);
   const firstRender = useRef(true);
@@ -1013,14 +1063,7 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
               horizontal: "left",
             }}
           >
-            <div className="p-4">
-              <div className="text-sm font-semibold">Row Data</div>
-              {selectedRowData && (
-                <pre className="text-xs text-gray-800 whitespace-pre-wrap">
-                  {JSON.stringify(selectedRowData, null, 2)}
-                </pre>
-              )}
-            </div>
+            <RowPopoverToggle selectedRowData={selectedRowData} />
           </Popover>
         }
 
@@ -1081,7 +1124,7 @@ export default class watchlist extends React.Component {
     this.setState((prevState) => ({ isOpen: !prevState.isOpen }));
   };
 
-  handleChange = (event, newAlignment) => {
+  handleChangeTable = (event, newAlignment) => {
     if (newAlignment == "show_list") {
       this.showList(event);
     } else if (newAlignment == "show_watchlist") {
@@ -1417,7 +1460,7 @@ export default class watchlist extends React.Component {
             color="primary"
             value={this.state.alignment}
             exclusive
-            onChange={this.handleChange}
+            onChange={this.handleChangeTable}
             aria-label="Platform"
           >
             <ToggleButton
