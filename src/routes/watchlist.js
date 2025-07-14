@@ -175,6 +175,24 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
   const [headersWithCheckbox, setHeadersWithCheckbox] = useState([]);
   const [anchorEl_add, setAnchorEl_add] = useState(null);
   const [anchorEl_cols, setAnchorEl_cols] = useState(null);
+  //clicking on row within data table
+  const [popoverAnchorEl, setPopoverAnchorEl] = useState(null);
+  const [selectedRowData, setSelectedRowData] = useState(null);
+
+  // Handle click on a row to open the popover for row options
+  const handleRowClick = (event, rowData) => {
+    setPopoverAnchorEl(event.currentTarget); // Set the row's DOM element as the anchor
+    setSelectedRowData(rowData); // Store the clicked row's data
+  };
+
+  // Close the popover
+  const handlePopoverClose = () => {
+    setPopoverAnchorEl(null);
+    setSelectedRowData(null);
+  };
+
+  // Check if the popover should be open
+  const isPopoverOpen = Boolean(popoverAnchorEl);
 
   let rows = Array.isArray(data?.data) ? data.data : [];
   let open_add = Boolean(anchorEl_add);
@@ -241,7 +259,8 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
     return rows.some((row) => !isNaN(parseFloat(row[column])));
   };
 
-  const handleImageClick = (imageSrc) => {
+  const handleImageClick = (event, imageSrc) => {
+    event.stopPropagation();
     setPopupImage(imageSrc); // Set the clicked image as the popup source
     setIsPopupOpen(true); // Open the popup
   };
@@ -890,6 +909,7 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
                   <tr
                     key={index}
                     className={`hover:bg-blue-100 ${getRowColor(item)}`}
+                    onClick={(e) => handleRowClick(e, item)}
                   >
                     {headersWithCheckbox
                       .filter((h) => h.checked)
@@ -910,7 +930,9 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
                                   height: "60px",
                                   objectFit: "contain",
                                 }}
-                                onClick={() => handleImageClick(item.logo)}
+                                onClick={(event) =>
+                                  handleImageClick(event, item.logo)
+                                }
                                 className="cursor-pointer"
                               />
                             </td>
@@ -975,6 +997,32 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Popup Modal for row options */}
+        {
+          <Popover
+            open={isPopoverOpen}
+            anchorEl={popoverAnchorEl}
+            onClose={handlePopoverClose} // Use the updated close method
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left",
+            }}
+          >
+            <div className="p-4">
+              <div className="text-sm font-semibold">Row Data</div>
+              {selectedRowData && (
+                <pre className="text-xs text-gray-800 whitespace-pre-wrap">
+                  {JSON.stringify(selectedRowData, null, 2)}
+                </pre>
+              )}
+            </div>
+          </Popover>
+        }
 
         {/* Popup Modal for Larger Image */}
         {isPopupOpen && (
