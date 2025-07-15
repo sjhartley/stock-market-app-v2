@@ -15,7 +15,7 @@ root.render(
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="watchlist" element={<Watchlist />} />
-      <Route path="charts" element={<Charts />} />
+      <Route path="charts" element={<Charts widgetMode={false} />} />
       <Route path="radio" element={<Radio />} />
       <Route path="tv" element={<Tv />} />
       <Route path="data" element={<Data />} />

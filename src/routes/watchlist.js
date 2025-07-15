@@ -11,6 +11,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import NavigationMenu from "./navigationMenu";
+import Charts from "./charts";
 const kaching = require("../sounds/kaching.ogg");
 const kachingAudio = new Audio(kaching);
 const lobby = require("../sounds/lobby.ogg");
@@ -67,7 +68,7 @@ const popoverContent = (
   </>
 );
 
-const RowPopoverToggle = ({ selectedRowData }) => {
+const RowPopoverToggle = ({ type, selectedRowData }) => {
   const [selectedMode, setSelectedMode] = useState("row_data");
 
   const handleChange = (event, newMode) => {
@@ -76,9 +77,15 @@ const RowPopoverToggle = ({ selectedRowData }) => {
     }
   };
 
+  // Early return if no data
+  if (!selectedRowData) {
+    return null;
+  }
+
   return (
-    <div className="pb-2">
-      <div>
+    <div className="pb-2 w-[400px] max-w-[90vw] max-h-[70vh] overflow-auto">
+      {/* Toggle Buttons */}
+      <div className="sticky top-0 bg-white z-10 pb-2">
         <ToggleButtonGroup
           color="primary"
           value={selectedMode}
@@ -95,20 +102,33 @@ const RowPopoverToggle = ({ selectedRowData }) => {
           </ToggleButton>
         </ToggleButtonGroup>
       </div>
-      <div>
+
+      {/* Conditional Views */}
+      <div className="overflow-auto max-h-[60vh] p-2">
         {selectedMode === "row_data" && (
-          <div className="p-4">
-            {/* <div className="text-sm font-semibold">Row Data</div> */}
-            <pre className="text-xs text-gray-800 whitespace-pre-wrap">
-              {JSON.stringify(selectedRowData, null, 2)}
-            </pre>
-          </div>
+          <pre className="text-xs text-gray-800 whitespace-pre-wrap">
+            {JSON.stringify(selectedRowData, null, 2)}
+          </pre>
         )}
+
         {selectedMode === "historical_market_data" && (
-          <div>
-            Render Chart Here/Navigate to charts page (development in progress)
+          <div className="min-h-[300px]">
+            <Charts
+              symbol={
+                type === "show_list" || type === "show_watchlist"
+                  ? selectedRowData["ticker"]
+                  : selectedRowData["symbol"]
+              }
+              name={
+                type === "show_list" || type === "show_watchlist"
+                  ? selectedRowData["name"]
+                  : selectedRowData["desc"]
+              }
+              widgetMode={true}
+            />
           </div>
         )}
+
         {selectedMode === "dictation_row_data" && (
           <div>Trigger TTS (development in progress)</div>
         )}
@@ -1052,7 +1072,8 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
         {
           <Popover
             open={isPopoverOpen}
-            anchorEl={popoverAnchorEl}
+            anchorReference="anchorPosition"
+            anchorPosition={{ top: 150, left: window.innerWidth / 2 }} // customize Y (top) and X (left)
             onClose={handlePopoverClose} // Use the updated close method
             anchorOrigin={{
               vertical: "bottom",
@@ -1063,7 +1084,7 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
               horizontal: "left",
             }}
           >
-            <RowPopoverToggle selectedRowData={selectedRowData} />
+            <RowPopoverToggle type={type} selectedRowData={selectedRowData} />
           </Popover>
         }
 

@@ -18,8 +18,9 @@ class Charts extends React.Component {
       name: "",
       symbol: "CZR",
       loading: false,
-      mode: "dark",
+      mode: "light",
       modeEmojis: { dark: "&#x1F31B;", light: "&#x1F31E;" },
+      widgetMode: false,
     };
     this.myRef = React.createRef();
 
@@ -155,10 +156,13 @@ class Charts extends React.Component {
   };
 
   componentDidMount() {
-    const propsSymbol = this.props?.location?.state?.symbol || "AMZN";
-    const propsName = this.props?.location?.state?.name || "AMAZON COM INC";
+    const propsSymbol = this.props?.symbol || "AMZN";
+    const propsName = this.props?.name || "AMAZON COM INC";
+    const widgetMode = this.props?.widgetMode;
     this.setState({ symbol: propsSymbol });
     this.setState({ name: propsName });
+    this.setState({ widgetMode: widgetMode });
+
     let self = this;
     axios
       .get("https://vast-citadel-83110.herokuapp.com/list")
@@ -170,13 +174,15 @@ class Charts extends React.Component {
 
     this.getHist();
     document.body.style.backgroundSize = "100% 100vh";
-    let local_mode = localStorage.getItem("mode");
-    if (local_mode !== null) {
-      this.setState({ mode: local_mode }, () => {
+    if (widgetMode == false) {
+      let local_mode = localStorage.getItem("mode");
+      if (local_mode !== null) {
+        this.setState({ mode: local_mode }, () => {
+          this.changeColor(this.state.mode);
+        });
+      } else {
         this.changeColor(this.state.mode);
-      });
-    } else {
-      this.changeColor(this.state.mode);
+      }
     }
   }
 
@@ -290,17 +296,19 @@ class Charts extends React.Component {
 
     return (
       <div>
-        <NavigationMenu
-          title={"Charts"}
-          onChangeMode={(newMode) =>
-            this.handleModeChangeNavigationMenu(newMode)
-          }
-          additional={{ darkMode: true, music: true, dictation: false }}
-        />
+        {this.state.widgetMode == false ? (
+          <NavigationMenu
+            title={"Charts"}
+            onChangeMode={(newMode) =>
+              this.handleModeChangeNavigationMenu(newMode)
+            }
+            additional={{ darkMode: true, music: true, dictation: false }}
+          />
+        ) : null}
         <div
           style={{
             textAlign: "center",
-            fontSize: "28px",
+            fontSize: this.state.widgetMode == false ? "28px" : "14px",
             color: this.state.mode == "dark" ? "white" : "black",
           }}
         >
@@ -339,8 +347,8 @@ class Charts extends React.Component {
             <div
               style={{
                 display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
+                justifyContent: !this.state.widgetMode ? "center" : "unset",
+                alignItems: !this.state.widgetMode ? "center" : "flex-start",
                 height: "100vh", // or set a fixed height like "400px"
               }}
             >
