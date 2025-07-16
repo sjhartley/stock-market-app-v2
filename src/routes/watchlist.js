@@ -229,7 +229,15 @@ function ProgressBar({ filteredDataLength, totalRecords }) {
   );
 }
 
-const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
+const DataTable = ({
+  totalRecords,
+  alignment,
+  data,
+  type,
+  logo_dev_key,
+  disableProgress,
+  toggleDisableProgress,
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState(null);
@@ -248,6 +256,12 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
   //clicking on row within data table
   const [popoverAnchorEl, setPopoverAnchorEl] = useState(null);
   const [selectedRowData, setSelectedRowData] = useState(null);
+
+  useEffect(() => {
+    if (!disableProgress) {
+      setSearchTerm("");
+    }
+  }, [disableProgress]);
 
   // Handle click on a row to open the popover for row options
   const handleRowClick = (event, rowData) => {
@@ -612,7 +626,9 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
         <div className="mb-4 flex items-center">
           <select
             value={selectedHeader}
-            onChange={(e) => setSelectedHeader(e.target.value)}
+            onChange={(e) => {
+              setSelectedHeader(e.target.value);
+            }}
             className="px-4 py-2 border rounded-lg mr-2"
           >
             <option value="all">All Headers</option>
@@ -624,7 +640,9 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
           </select>
           <select
             value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
+            onChange={(e) => {
+              setSearchFilter(e.target.value);
+            }}
             className="px-4 py-2 border rounded-lg mr-2"
           >
             <option value="contains">Contains</option>
@@ -668,7 +686,10 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
               type="text"
               placeholder="Search..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                toggleDisableProgress(true);
+              }}
               className="px-4 py-2 border rounded-lg w-full"
             />
           )}
@@ -864,12 +885,14 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
           </Popover>
         </div>
         <div>
-          {alignment === "watchlist_data" && totalRecords > 0 && (
-            <ProgressBar
-              filteredDataLength={filteredData.length}
-              totalRecords={totalRecords}
-            />
-          )}
+          {alignment === "watchlist_data" &&
+            totalRecords > 0 &&
+            !disableProgress && (
+              <ProgressBar
+                filteredDataLength={filteredData.length}
+                totalRecords={totalRecords}
+              />
+            )}
         </div>
         {/* Main Data Table */}
         <div style={{ maxHeight: "60vh" }} className="overflow-x-auto">
@@ -953,24 +976,37 @@ const DataTable = ({ totalRecords, alignment, data, type, logo_dev_key }) => {
             </thead>
 
             <tbody>
-              {filteredData.length !== totalRecords ? (
+              {filteredData.length !== totalRecords && !disableProgress ? (
                 // Skeleton rows
                 Array.from({ length: 5 }).map((_, index) => (
                   <tr key={`skeleton-${index}`} className="animate-pulse">
-                    {headersWithCheckbox
-                      .filter((h) => h.checked)
-                      .map((h, i) => (
-                        <td
-                          key={i}
-                          className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
-                        >
-                          {h.name === "logo" ? (
-                            <div className="w-[60px] h-[60px] bg-gray-300 rounded mx-auto"></div>
-                          ) : (
-                            <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
-                          )}
-                        </td>
-                      ))}
+                    {alignment === "watchlist_data"
+                      ? headersWithCheckbox
+                          .filter((h) => h.checked)
+                          .map((h, i) => (
+                            <td
+                              key={`watchlist-${i}`}
+                              className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
+                            >
+                              {h.name === "logo" ? (
+                                <div className="w-[60px] h-[60px] bg-gray-300 rounded mx-auto"></div>
+                              ) : (
+                                <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
+                              )}
+                            </td>
+                          ))
+                      : headers.map((h, i) => (
+                          <td
+                            key={`default-${i}`}
+                            className="px-6 py-4 border-b border-gray-200 text-sm text-gray-500"
+                          >
+                            {h.name === "logo" ? (
+                              <div className="w-[60px] h-[60px] bg-gray-300 rounded mx-auto"></div>
+                            ) : (
+                              <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
+                            )}
+                          </td>
+                        ))}
                   </tr>
                 ))
               ) : filteredData.length > 0 ? (
@@ -1124,6 +1160,7 @@ export default class watchlist extends React.Component {
       watchlistArr: [],
       totalRecords: 0,
       progress: null,
+      disableProgress: true,
       nyse_keys: null,
       showShow: false,
       lobbyPlay: false,
@@ -1143,6 +1180,12 @@ export default class watchlist extends React.Component {
 
   toggleMenu = () => {
     this.setState((prevState) => ({ isOpen: !prevState.isOpen }));
+  };
+
+  toggleDisableProgress = (disable) => {
+    this.setState({
+      disableProgress: disable,
+    });
   };
 
   handleChangeTable = (event, newAlignment) => {
@@ -1167,6 +1210,7 @@ export default class watchlist extends React.Component {
     if (event != null) {
       this.setState({ type: event.target.value });
     }
+
     axios
       .get(`${process.env.REACT_APP_API_BASE_URL}/list`)
       .then(function (response) {
@@ -1278,6 +1322,7 @@ export default class watchlist extends React.Component {
 
   batchData1 = (event) => {
     this.setState({ type: event.target.value });
+    this.toggleDisableProgress(false);
     const qs = new URLSearchParams();
     let self = this;
 
@@ -1534,6 +1579,8 @@ export default class watchlist extends React.Component {
               data={this.state.displayData}
               type={this.state.type}
               logo_dev_key={this.state.logo_dev_key}
+              disableProgress={this.state.disableProgress}
+              toggleDisableProgress={this.toggleDisableProgress}
             />
           }
         </div>
