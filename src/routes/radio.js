@@ -1,89 +1,38 @@
 import "./radio.css";
 import React from "react";
 import Hls from "hls.js";
-import $ from "jquery";
-import "jquery.marquee";
 import axios from "axios";
 import NavigationMenu from "./navigationMenu";
+import "./radio.css";
+import $ from "jquery";
+import "jquery.marquee";
+import SnowBackground from "./SnowBackground";
+
 const cheerio = require("cheerio");
 
-const loading_img = require("../images/loading.png");
-const loaded_img = require("../images/ready.png");
-
 function get_bloomberg() {
-  var url =
+  const url =
     "https://playerservices.streamtheworld.com/api/livestream?transports=hls&version=1.8&mount=WBBRAMAAC48";
-  //this url is used to retrieve the bloomberg stream url
 
-  return new Promise(function (resolve, reject) {
-    axios.get(url).then(function (response) {
-      var body = cheerio.load(response.data, { xmlMode: true });
-      var transport_suf = body("transport");
-      console.log(`transport_suf=${transport_suf}`);
-      var server_ip = body("server ip");
-      console.log(`server_ip=${server_ip}`);
-      var mount = body("mount");
-      console.log(`mount=${mount}`);
-      var playlistUrl = `https://${server_ip
-        .first()
-        .text()}/${mount.text()}${transport_suf.attr("mountSuffix")}`;
-      console.log(`playlistUrl=${playlistUrl}`);
-      resolve(playlistUrl);
-    });
+  return axios.get(url).then((response) => {
+    const body = cheerio.load(response.data, { xmlMode: true });
+    const server_ip = body("server ip").first().text();
+    const mount = body("mount").text();
+    const transport_suf = body("transport").attr("mountSuffix");
+    return `https://${server_ip}/${mount}${transport_suf}`;
   });
 }
 
 class Radio extends React.Component {
   constructor(props) {
     super(props);
-
+    this.audioRef = React.createRef();
     this.state = {
-      stream_url: "Loading...",
+      playing: false,
+      volume: 1.0,
       modeEmojis: { dark: "&#x1F31B;", light: "&#x1F31E;" },
+      loading: true,
     };
-  }
-
-  setupPlayer() {
-    return new Promise(function (resolve, reject) {
-      get_bloomberg().then(function (playlistUrl) {
-        axios.get(playlistUrl).then(function (response) {
-          var body = response.data.toString();
-          console.log(body);
-          var http_search = body.search("https://");
-          console.log(http_search);
-          var sessionStreamUrl = body.slice(http_search).split("\n")[0];
-          console.log(playlistUrl);
-          console.log(`bloomberg radio session stream=${sessionStreamUrl}`);
-
-          let bloomberg_stream = document.getElementById("bloomberg_stream");
-          if (Hls.isSupported()) {
-            var hls = new Hls();
-            hls.loadSource(sessionStreamUrl);
-            hls.attachMedia(bloomberg_stream);
-            hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-              bloomberg_stream.muted = false;
-              bloomberg_stream.poster = loaded_img;
-              resolve(sessionStreamUrl);
-            });
-          } else {
-            reject();
-          }
-        });
-      });
-    });
-  }
-
-  showMarquee() {
-    this.$el
-      .marquee({
-        duration: 10000,
-        delayBeforeStart: 0,
-      })
-      .bind("finished", () => {
-        this.$el.marquee("destroy");
-        document.getElementById("marquee").innerHTML = this.state.stream_url;
-        this.showMarquee();
-      });
   }
 
   changeColor = (mode) => {
@@ -107,28 +56,60 @@ class Radio extends React.Component {
   };
 
   componentDidMount() {
-    let self = this;
+    const audio = this.audioRef.current;
     let local_mode = localStorage.getItem("mode");
+
     if (local_mode !== null) {
       this.changeColor(local_mode);
     } else {
       this.changeColor(this.state.mode);
     }
-    this.setupPlayer().then(function (url) {
-      console.log(url);
-      self.setState({ stream_url: `Streaming at ${url}` }, function () {
-        self.showMarquee();
+
+    get_bloomberg().then((playlistUrl) => {
+      axios.get(playlistUrl).then((res) => {
+        const sessionStreamUrl = res.data
+          .toString()
+          .match(/https:\/\/.*\.m3u8/)[0];
+
+        const setReady = () => this.setState({ loading: false });
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(sessionStreamUrl);
+          hls.attachMedia(audio);
+          hls.on(Hls.Events.MANIFEST_PARSED, setReady);
+        } else if (audio.canPlayType("application/vnd.apple.mpegurl")) {
+          audio.src = sessionStreamUrl;
+          audio.addEventListener("canplay", setReady);
+        }
       });
     });
   }
 
+  togglePlay = () => {
+    const audio = this.audioRef.current;
+    if (this.state.playing) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+    this.setState((prev) => ({ playing: !prev.playing }));
+  };
+
+  handleVolumeChange = (e) => {
+    const volume = parseFloat(e.target.value);
+    this.audioRef.current.volume = volume;
+    this.setState({ volume });
+  };
+
   render() {
     return (
-      <div id="root">
+      <div>
         <NavigationMenu
           title={"Bloomberg Radio"}
           additional={{ darkMode: true, music: true, dictation: false }}
         />
+        <SnowBackground />
         <div
           style={{
             color: "#00FF00",
@@ -139,14 +120,41 @@ class Radio extends React.Component {
           id="marquee"
           ref={(el) => (this.$el = $(el))}
         ></div>
+        <div className="radio-card-wrapper">
+          <div className="radio-card">
+            {/* Image here */}
+            {this.state.loading ? (
+              <div className="loading-indicator">
+                <img
+                  src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHU3NjV2dXk0MzUyeXZycnhxNG93OXo1aWllMzJoOXppMmVzOGRlOSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/m12EDnP8xGLy8/giphy.gif"
+                  alt="loading"
+                  className="radio-image"
+                />
+              </div>
+            ) : (
+              <img
+                src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExczR3anhpcTIxdDRuNmxvNXA1NG14eDYwajZ3MWYzcnZnMzJnMmc2cSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/78nXADhnE4BQfG4gup/giphy.gif" // adjust this path as needed
+                alt="Bloomberg Radio"
+                className="radio-image"
+              />
+            )}
 
-        <div id="stream-container">
-          <video
-            style={{ backgroundColor: "#FF0000" }}
-            controls
-            poster={loading_img}
-            id="bloomberg_stream"
-          ></video>
+            <audio ref={this.audioRef} preload="none" />
+            <div className="radio-controls">
+              <button onClick={this.togglePlay} className="play-button">
+                {this.state.playing ? "Pause" : "Play"}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={this.state.volume}
+                onChange={this.handleVolumeChange}
+                className="volume-slider"
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
