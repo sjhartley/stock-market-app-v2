@@ -2,17 +2,20 @@ import React from "react";
 import Hls from "hls.js";
 import axios from "axios";
 import NavigationMenu from "./navigationMenu";
+const baseUrl = "https://www.bloomberg.com/media-manifest/streams";
+const euUrl = baseUrl + "/eu.m3u8";
+const usUrl = baseUrl + "/phoenix-us.m3u8";
 
 export default class Tv extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      test: "hello",
       hls: new Hls(),
       stream_Url:
         "https://www.bloomberg.com/media-manifest/streams/phoenix-us.m3u8",
       stream_Url1: "",
       streamInfos: [],
+      region: "us",
       mode: "dark",
       modeEmojis: { dark: "&#x1F31B;", light: "&#x1F31E;" },
     };
@@ -24,103 +27,74 @@ export default class Tv extends React.Component {
 
   changeColor = (mode) => {
     localStorage.setItem("mode", mode);
-    this.setState({ mode: mode });
-    let color = "";
+    this.setState({ mode });
+    let color = mode === "dark" ? "#000000" : "#FFFFFF";
+    document.body.style.backgroundColor = color;
+
     let emojiMode = document.getElementById("modeEmoji");
-    let body = document.body;
-
-    if (mode == "dark") {
-      color = "#000000";
-      //emojiMode.innerHTML = this.state.modeEmojis[mode];
-    } else if (mode == "light") {
-      color = "#FFFFFF";
-      //emojiMode.innerHTML = this.state.modeEmojis[mode];
-    }
-
-    body.style.backgroundColor = color;
-
     if (emojiMode !== null) {
       emojiMode.innerHTML = this.state.modeEmojis[mode];
     }
   };
 
   handleSourceChange(event) {
-    let euUrl = "https://www.bloomberg.com/media-manifest/streams/eu.m3u8";
-    let usUrl =
-      "https://www.bloomberg.com/media-manifest/streams/phoenix-us.m3u8";
+    const choice = event.target.value;
 
-    let choice = event.target.value;
-    if (choice !== null) {
-      console.log(`choice=${choice}`);
-      if (choice == "europe") {
-        this.setState({ stream_Url: euUrl }, function () {
-          console.log(this.state.stream_Url);
-          this.collectStreamInfo();
-        });
-      } else if (choice == "us") {
-        this.setState({ stream_Url: usUrl }, function () {
-          console.log(this.state.stream_Url);
-          this.collectStreamInfo();
-        });
-      }
+    if (choice === "europe") {
+      this.setState({ stream_Url: euUrl, region: "europe" }, () =>
+        this.collectStreamInfo()
+      );
+    } else if (choice === "us") {
+      this.setState({ stream_Url: usUrl, region: "us" }, () =>
+        this.collectStreamInfo()
+      );
     }
   }
 
   handleStreamSettingsChange(event) {
-    let choice1 = event.target.value;
-    if (choice1 !== null) {
-      console.log(choice1);
+    const choice1 = event.target.value;
+    if (choice1) {
       this.setState({ stream_Url1: choice1 });
     }
   }
 
   setupPlayer() {
-    let self = this;
-    let streamUrl1 = this.state.stream_Url1;
-    console.log("streamURL1");
-    console.log(streamUrl1);
-    let bloomberg_stream = document.getElementById("bloomberg_stream");
-    if (Hls.isSupported() && streamUrl1 !== null) {
-      var hls = this.state.hls;
-      console.log(bloomberg_stream);
-      if (hls !== null && bloomberg_stream !== null) {
-        hls.loadSource(streamUrl1);
-        hls.attachMedia(bloomberg_stream);
-        hls.on(Hls.Events.MEDIA_PARSED, function () {
-          bloomberg_stream.muted = false;
-        });
-      }
+    const { stream_Url1, hls } = this.state;
+    const video = document.getElementById("bloomberg_stream");
+
+    if (Hls.isSupported() && stream_Url1 && video) {
+      hls.loadSource(stream_Url1);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MEDIA_PARSED, () => {
+        video.muted = false;
+      });
     }
   }
 
   collectStreamInfo() {
-    let self = this;
-    axios.get(this.state.stream_Url).then(function (response) {
-      let body = response.data;
-      if (body !== null) {
-        let split_arr = body.split(/\r?\n/);
-        let infObjs = [];
+    axios.get(this.state.stream_Url).then((response) => {
+      const body = response.data;
+      if (body) {
+        const split_arr = body.split(/\r?\n/);
+        const infObjs = [];
+
         for (let i = 0; i < split_arr.length; i++) {
           if (
-            split_arr[i].search("BANDWIDTH") !== -1 &&
-            split_arr[i].search("RESOLUTION") !== -1
+            split_arr[i].includes("BANDWIDTH") &&
+            split_arr[i].includes("RESOLUTION")
           ) {
-            var infObj = new Object();
-            let bw = split_arr[i].split("BANDWIDTH=")[1].split(",")[0];
-            let res = split_arr[i].split("RESOLUTION=")[1].split(",")[0];
-            let codecs = split_arr[i].split('CODECS="')[1].split('"')[0];
-            infObj["bw"] = bw;
-            infObj["res"] = res;
-            infObj["codecs"] = codecs;
-            infObj["streamUrl"] = split_arr[i + 1];
-            infObjs.push(infObj);
+            const bw = split_arr[i].split("BANDWIDTH=")[1].split(",")[0];
+            const res = split_arr[i].split("RESOLUTION=")[1].split(",")[0];
+            const codecs = split_arr[i].split('CODECS="')[1].split('"')[0];
+            const streamUrl = split_arr[i + 1];
+
+            infObjs.push({ bw, res, codecs, streamUrl });
           }
         }
-        self.setState({ streamInfos: infObjs }, function () {
-          console.log(self.state.streamInfos);
-          let choice1 = document.getElementById("choice1").value;
-          if (choice1 !== null) {
-            console.log(choice1);
+
+        this.setState({ streamInfos: infObjs }, () => {
+          const choice1 = document.getElementById("choice1")?.value;
+          if (choice1) {
             this.setState({ stream_Url1: choice1 });
           }
         });
@@ -128,78 +102,151 @@ export default class Tv extends React.Component {
     });
   }
 
+  handleModeChangeNavigationMenu = (newMode) => {
+    this.setState({ mode: newMode });
+  };
+
   componentDidMount() {
     this.collectStreamInfo();
     document.body.style.backgroundImage = "none";
-    let local_mode = localStorage.getItem("mode");
-    console.log(`mode=${localStorage.getItem("mode")}`);
-    if (local_mode !== null) {
-      this.changeColor(local_mode);
-    } else {
-      this.changeColor(this.state.mode);
+
+    const local_mode = localStorage.getItem("mode");
+    this.changeColor(local_mode || this.state.mode);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.stream_Url1 !== this.state.stream_Url1) {
+      this.setupPlayer();
     }
   }
 
-  componentDidUpdate() {
-    this.setupPlayer();
-  }
-
   render() {
+    const { mode, streamInfos, stream_Url } = this.state;
+
     const renderFilterOptions = () => {
-      if (this.state.streamInfos.length !== 0) {
-        let options = this.state.streamInfos.map(function (el, i) {
-          return (
-            <option
-              key={`${i}_i`}
-              value={`${el.streamUrl}`}
-            >{`BANDWITH: ${el.bw}, RESOLUTION: ${el.res}, CODECS: ${el.codecs}`}</option>
-          );
-        });
-        return options;
-      } else {
-        return <option>NO OPTIONS AVAILABLE</option>;
-      }
+      return streamInfos.length ? (
+        streamInfos.map((el, i) => (
+          <option key={i} value={el.streamUrl}>
+            BANDWIDTH: {el.bw}, RESOLUTION: {el.res}, CODECS: {el.codecs}
+          </option>
+        ))
+      ) : (
+        <option>Loading stream options...</option>
+      );
     };
 
     return (
       <div id="root">
         <NavigationMenu
           title={"Bloomberg TV"}
+          onChangeMode={this.handleModeChangeNavigationMenu}
           additional={{ darkMode: true }}
         />
 
         <div
           style={{
+            display: "flex",
             justifyContent: "center",
-            textAlign: "center",
-            paddingBottom: "1rem",
+            gap: "2rem",
+            flexWrap: "wrap",
+            marginTop: "2rem",
           }}
         >
-          <label>Source: </label>
-          <select id="choice" onChange={this.handleSourceChange}>
-            <option value="us">US</option>
-            <option value="europe">EUROPE</option>
-          </select>
+          {/* Source Selector */}
+          <div style={{ textAlign: "left", minWidth: "250px" }}>
+            <label
+              htmlFor="choice"
+              style={{
+                color: mode === "dark" ? "#fff" : "#000",
+                fontWeight: "bold",
+                display: "block",
+                marginBottom: "0.5rem",
+              }}
+            >
+              🌐 Select Region:
+            </label>
+            <select
+              id="choice"
+              onChange={this.handleSourceChange}
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                backgroundColor: mode === "dark" ? "#222" : "#fff",
+                color: mode === "dark" ? "#fff" : "#000",
+              }}
+            >
+              <option value="us">🇺🇸 United States</option>
+              <option value="europe">🇪🇺 Europe</option>
+            </select>
+          </div>
+
+          {/* Stream Settings Selector */}
+          <div style={{ textAlign: "left", minWidth: "250px" }}>
+            <label
+              htmlFor="choice1"
+              style={{
+                color: mode === "dark" ? "#fff" : "#000",
+                fontWeight: "bold",
+                display: "block",
+                marginBottom: "0.5rem",
+              }}
+            >
+              🎛 Stream Quality:
+            </label>
+            <select
+              id="choice1"
+              onChange={this.handleStreamSettingsChange}
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                backgroundColor: mode === "dark" ? "#222" : "#fff",
+                color: mode === "dark" ? "#fff" : "#000",
+              }}
+            >
+              {renderFilterOptions()}
+            </select>
+          </div>
         </div>
-        <div style={{ justifyContent: "center", textAlign: "center" }}>
-          <label>Stream settings: </label>
-          <select id="choice1" onChange={this.handleStreamSettingsChange}>
-            {renderFilterOptions()}
-          </select>
-        </div>
+
+        <p
+          style={{
+            color: mode === "dark" ? "#aaa" : "#333",
+            textAlign: "center",
+            marginTop: "1rem",
+            fontSize: "0.9rem",
+          }}
+        >
+          Currently viewing:{" "}
+          <strong>
+            {this.state.region == "europe" ? "Europe" : "United States"}
+          </strong>{" "}
+          stream
+        </p>
+
         <div
           id="stream-container"
           style={{
+            display: "flex",
             justifyContent: "center",
-            textAlign: "center",
-            paddingTop: "10rem",
+            marginTop: "4rem",
+            padding: "1rem",
           }}
         >
           <video
-            style={{ backgroundColor: "#FF0000" }}
-            controls
             id="bloomberg_stream"
-          ></video>
+            controls
+            style={{
+              width: "90%",
+              maxWidth: "800px",
+              backgroundColor: "#000",
+              borderRadius: "12px",
+              boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)",
+            }}
+          />
         </div>
       </div>
     );
