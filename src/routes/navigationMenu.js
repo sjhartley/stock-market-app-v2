@@ -2,7 +2,7 @@ import React, { Component, Fragment } from "react";
 import { motion } from "framer-motion";
 import styled from "styled-components";
 import { Link } from "react-router-dom";
-import Switch from "react-input-switch";
+import Switch from "@mui/material/Switch";
 import {
   IoIosHelpCircleOutline,
   IoIosMusicalNotes,
@@ -65,7 +65,8 @@ class NavigationMenu extends Component {
     this.state = {
       isOpen: false,
       lobbyPlayHandler: true,
-      mode: "dark",
+      darkModeLabel: "dark",
+      darkMode: true,
       modeEmojis: { dark: "&#x1F31B;", light: "&#x1F31E;" },
       additional: null,
       title: null,
@@ -113,36 +114,54 @@ class NavigationMenu extends Component {
     this.setState((prevState) => ({ isOpen: !prevState.isOpen }));
   };
 
-  changeColor = (mode) => {
-    if (this.props.onChangeMode) {
-      this.props.onChangeMode(mode);
-    }
-    localStorage.setItem("mode", mode);
-    this.setState({ mode: mode });
-    let color = "";
-    let emojiMode = document.getElementById("modeEmoji");
-    let body = document.body;
+  // changeColor = (mode) => {
+  //   if (this.props.onChangeMode) {
+  //     this.props.onChangeMode(mode);
+  //   }
+  //   localStorage.setItem("mode", mode);
+  //   this.setState({ mode: mode });
+  //   let color = "";
+  //   let emojiMode = document.getElementById("modeEmoji");
+  //   let body = document.body;
 
-    if (mode == "dark") {
-      color = "#000000";
-    } else if (mode == "light") {
-      color = "#FFFFFF";
-    }
+  //   if (mode == "dark") {
+  //     color = "#000000";
+  //   } else if (mode == "light") {
+  //     color = "#FFFFFF";
+  //   }
 
-    body.style.backgroundColor = color;
+  //   body.style.backgroundColor = color;
+
+  //   if (emojiMode !== null) {
+  //     emojiMode.innerHTML = this.state.modeEmojis[mode];
+  //   }
+  // };
+
+  changeColor = (value) => {
+    const darkModeLabel = value ? "dark" : "light";
+    const color = value ? "#000000" : "#FFFFFF";
+    const emoji = this.state.modeEmojis[darkModeLabel];
+    const emojiMode = document.getElementById("modeEmoji");
+
+    this.setState({ darkMode: value, darkModeLabel });
+    localStorage.setItem("darkMode", value);
+    document.body.style.backgroundColor = color;
 
     if (emojiMode !== null) {
-      emojiMode.innerHTML = this.state.modeEmojis[mode];
+      emojiMode.innerHTML = emoji;
     }
   };
 
   componentDidMount() {
-    let localMode = localStorage.getItem("mode");
-    if (localMode != null) {
-      this.setState({ mode: localMode });
+    document.body.style.backgroundSize = "100% 100vh";
+    const local_mode = localStorage.getItem("darkMode");
+    console.log(`mode=${local_mode}`);
+    if (local_mode !== null) {
+      const isDark = local_mode === "true"; // ✅ Convert string to boolean
+      this.changeColor(isDark);
+    } else {
+      this.changeColor(this.state.darkMode);
     }
-    this.setState({ additional: this.props.additional });
-    this.setState({ title: this.props.title });
   }
 
   render() {
@@ -320,11 +339,19 @@ class NavigationMenu extends Component {
                       {this.state.mode}
                     </span>
                     <Switch
+                      checked={this.state.darkMode}
+                      //value={this.darkMode}
+                      onChange={(event) =>
+                        this.changeColor(event.target.checked)
+                      }
+                      slotProps={{ input: { "aria-label": "controlled" } }}
+                    />
+                    {/* <Switch
                       on="light"
                       off="dark"
                       value={this.state.mode}
                       onChange={(mode) => this.changeColor(mode)}
-                    />
+                    /> */}
                   </Fragment>
                 </span>
               </div>

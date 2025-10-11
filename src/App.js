@@ -1,7 +1,7 @@
 import logo from "./logo.svg";
 import "./App.css";
 import React, { Fragment } from "react";
-import Switch from "react-input-switch";
+import Switch from "@mui/material/Switch";
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -45,7 +45,8 @@ export default class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      mode: "dark",
+      darkModeLabel: "dark",
+      darkMode: true,
       modeEmojis: { dark: "&#x1F31B;", light: "&#x1F31E;" },
       isOpen: false,
     };
@@ -55,25 +56,48 @@ export default class App extends React.Component {
     this.setState((prevState) => ({ isOpen: !prevState.isOpen }));
   };
 
-  changeColor = (mode) => {
-    localStorage.setItem("mode", mode);
-    this.setState({ mode: mode });
-    let color = "";
-    let emojiMode = document.getElementById("modeEmoji");
-    let body = document.body;
+  changeColor = (value) => {
+    const darkModeLabel = value ? "dark" : "light";
+    const color = value ? "#000000" : "#FFFFFF";
+    const emoji = this.state.modeEmojis[darkModeLabel];
+    const emojiMode = document.getElementById("modeEmoji");
 
-    if (mode == "dark") {
-      color = "#000000";
-    } else if (mode == "light") {
-      color = "#FFFFFF";
-    }
-
-    body.style.backgroundColor = color;
+    this.setState({ darkMode: value, darkModeLabel });
+    localStorage.setItem("darkMode", value);
+    document.body.style.backgroundColor = color;
 
     if (emojiMode !== null) {
-      emojiMode.innerHTML = this.state.modeEmojis[mode];
+      emojiMode.innerHTML = emoji;
     }
   };
+
+  // changeColor = (value) => {
+  //   console.log(value);
+  //   let darkModeLabel = "";
+  //   this.setState({ darkMode: value });
+  //   let color = "";
+  //   let emojiMode = document.getElementById("modeEmoji");
+  //   let body = document.body;
+
+  //   if (value == true) {
+  //     color = "#000000";
+  //     darkModeLabel = "dark";
+  //   } else if (value == false) {
+  //     color = "#FFFFFF";
+  //     darkModeLabel = "light";
+  //   }
+  //   this.setState({ darkModeLabel: darkModeLabel });
+  //   console.log(darkModeLabel);
+  //   localStorage.setItem("darkMode", value);
+
+  //   body.style.backgroundColor = color;
+
+  //   if (emojiMode !== null) {
+  //     console.log("emojiMode not null");
+  //     console.log(darkModeLabel);
+  //     emojiMode.innerHTML = this.state.modeEmojis[darkModeLabel];
+  //   }
+  // };
 
   changeGif() {
     let gifs = [
@@ -104,12 +128,13 @@ export default class App extends React.Component {
 
   componentDidMount() {
     document.body.style.backgroundSize = "100% 100vh";
-    let local_mode = localStorage.getItem("mode");
-    console.log(`mode=${localStorage.getItem("mode")}`);
+    const local_mode = localStorage.getItem("darkMode");
+    console.log(`mode=${local_mode}`);
     if (local_mode !== null) {
-      this.changeColor(local_mode);
+      const isDark = local_mode === "true"; // ✅ Convert string to boolean
+      this.changeColor(isDark);
     } else {
-      this.changeColor(this.state.mode);
+      this.changeColor(this.state.darkMode);
     }
   }
 
@@ -270,14 +295,22 @@ export default class App extends React.Component {
                         fontWeight: "bold",
                       }}
                     >
-                      {this.state.mode}
+                      {this.state.darkMode ? "dark" : "light"}
                     </span>
                     <Switch
+                      checked={this.state.darkMode}
+                      //value={this.darkMode}
+                      onChange={(event) =>
+                        this.changeColor(event.target.checked)
+                      }
+                      slotProps={{ input: { "aria-label": "controlled" } }}
+                    />
+                    {/* <Switch
                       on="light"
                       off="dark"
                       value={this.state.mode}
                       onChange={(mode) => this.changeColor(mode)}
-                    />
+                    /> */}
                   </Fragment>
                 </span>
               </div>
