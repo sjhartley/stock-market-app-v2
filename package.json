@@ -13,7 +13,6 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
-    "canvas": "^2.11.2",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
     "framer-motion": "^12.0.6",
@@ -35,6 +34,9 @@
     "styled-components": "^6.1.13",
     "tsparticles": "^2.8.0",
     "web-vitals": "^2.1.4"
+  },
+  "optionalDependencies": {
+    "canvas": "^2.11.2"
   },
   "scripts": {
     "start": "react-scripts start",
