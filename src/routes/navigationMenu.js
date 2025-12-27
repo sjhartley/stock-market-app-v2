@@ -9,6 +9,7 @@ import {
   IoIosDownload,
   IoMdMegaphone,
 } from "react-icons/io";
+import { FaUserCircle } from "react-icons/fa";
 import { IconContext } from "react-icons";
 import Popover from "@mui/material/Popover";
 const lobby = require("../sounds/lobby.ogg");
@@ -438,6 +439,19 @@ class NavigationMenu extends Component {
                 </button>
               </span>
             ) : null}
+            <span>
+              <button>
+                <IconContext.Provider
+                  value={{
+                    color: "white",
+                    size: 32,
+                    className: "global-class-name",
+                  }}
+                >
+                  <FaUserCircle />
+                </IconContext.Provider>
+              </button>
+            </span>
           </div>
         </div>
       </nav>
