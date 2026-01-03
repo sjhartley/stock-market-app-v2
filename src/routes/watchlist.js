@@ -68,19 +68,17 @@ const popoverContent = (
   </>
 );
 
-const RowPopoverToggle = ({ type, selectedRowData }) => {
+const RowPopoverToggle = ({ type, selectedRowData: rowView }) => {
+  // Only create cleanRowData if rowView exists
+  const cleanRowData = rowView ? (({ logo, ...rest }) => rest)(rowView) : null;
+
   const [selectedMode, setSelectedMode] = useState("row_data");
 
   const handleChange = (event, newMode) => {
-    if (newMode !== null) {
-      setSelectedMode(newMode);
-    }
+    if (newMode !== null) setSelectedMode(newMode);
   };
 
-  // Early return if no data
-  if (!selectedRowData) {
-    return null;
-  }
+  if (!cleanRowData) return null;
 
   return (
     <div className="pb-2 w-[400px] max-w-[90vw] max-h-[70vh] overflow-auto">
@@ -107,22 +105,22 @@ const RowPopoverToggle = ({ type, selectedRowData }) => {
       <div className="overflow-auto max-h-[60vh] p-2">
         {selectedMode === "row_data" && (
           <pre className="text-xs text-gray-800 whitespace-pre-wrap">
-            {JSON.stringify(selectedRowData, null, 2)}
+            {JSON.stringify(cleanRowData, null, 2)}
           </pre>
         )}
 
-        {selectedMode === "historical_market_data" && (
+        {selectedMode === "historical_market_data" && rowView && (
           <div className="min-h-[300px]">
             <Charts
               symbol={
                 type === "show_list" || type === "show_watchlist"
-                  ? selectedRowData["ticker"]
-                  : selectedRowData["symbol"]
+                  ? rowView["ticker"]
+                  : rowView["symbol"]
               }
               name={
                 type === "show_list" || type === "show_watchlist"
-                  ? selectedRowData["name"]
-                  : selectedRowData["desc"]
+                  ? rowView["name"]
+                  : rowView["desc"]
               }
               widgetMode={true}
             />
