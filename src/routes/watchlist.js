@@ -1163,7 +1163,6 @@ export default class watchlist extends React.Component {
       type: null,
       alignment: "show_list",
       isOpen: false,
-      logo_dev_key: null,
     };
 
     this.showList = this.showList.bind(this);
@@ -1449,7 +1448,6 @@ export default class watchlist extends React.Component {
 
   componentDidMount() {
     this.setState({ type: "show_list" });
-    this.setState({ logo_dev_key: process.env.REACT_APP_LOGO_DEV_KEY });
     let self = this;
     this.setState({ serverStatus: "Retrieving status please wait..." });
     localStorage.removeItem("watchlistArr");
@@ -1571,7 +1569,6 @@ export default class watchlist extends React.Component {
               alignment={this.state.alignment}
               data={this.state.displayData}
               type={this.state.type}
-              logo_dev_key={this.state.logo_dev_key}
               disableProgress={this.state.disableProgress}
               toggleDisableProgress={this.toggleDisableProgress}
             />
