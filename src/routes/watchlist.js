@@ -232,7 +232,6 @@ const DataTable = ({
   alignment,
   data,
   type,
-  logo_dev_key,
   disableProgress,
   toggleDisableProgress,
 }) => {
@@ -281,19 +280,15 @@ const DataTable = ({
   let open_cols = Boolean(anchorEl_cols);
 
   rows = rows.map((item) => {
-    // Only add the logo if the type is 'show_watchlist' or 'watchlist_data'
     if (type === "show_watchlist" || type === "watchlist_data") {
       return {
         ...item,
-        logo: `https://img.logo.dev/ticker/${
-          type === "show_watchlist" ? item.ticker : item.symbol
-        }?token=${logo_dev_key}`,
-      };
-    } else {
-      return {
-        ...item,
+        logo: `${process.env.REACT_APP_API_BASE_URL1}/logo/${
+          alignment === "show_watchlist" ? item.ticker : item.symbol
+        }`,
       };
     }
+    return item;
   });
 
   rows = rows.filter((row) => {
