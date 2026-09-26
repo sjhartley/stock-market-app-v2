@@ -35,7 +35,7 @@ class Charts extends React.Component {
       loading: true,
     });
     axios
-      .post("https://backend684.herokuapp.com/hist", {
+      .post(`${process.env.REACT_APP_API_BASE_URL}/hist`, {
         params: {
           symbol: this.state.symbol,
         },
@@ -60,7 +60,7 @@ class Charts extends React.Component {
             }
             points2Obj.x = date;
             points2Obj.y = parseFloat(
-              rows[i].volume.toString().replace(",", "")
+              rows[i].volume.toString().replace(",", ""),
             );
             points1.push(points1Obj);
             points2.push(points2Obj);
@@ -94,8 +94,8 @@ class Charts extends React.Component {
     event.preventDefault();
     axios
       .post(
-        "https://vast-citadel-83110.herokuapp.com/search",
-        `keyWord=${self.myRef.current.value}`
+        `${process.env.REACT_APP_API_BASE_URL}/search`,
+        `keyWord=${self.myRef.current.value}`,
       )
       .then(function (response) {
         if (response.data[0] != null) {
@@ -110,7 +110,7 @@ class Charts extends React.Component {
               },
               () => {
                 self.getHist();
-              }
+              },
             );
           }
         } else {
@@ -165,7 +165,7 @@ class Charts extends React.Component {
 
     let self = this;
     axios
-      .get("https://vast-citadel-83110.herokuapp.com/list")
+      .get(`${process.env.REACT_APP_API_BASE_URL}/list`)
       .then(function (response) {
         let body = response.data;
         let keys = ["name", "ticker", "url"];

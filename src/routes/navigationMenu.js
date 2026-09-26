@@ -12,19 +12,29 @@ import {
 import { FaUserCircle } from "react-icons/fa";
 import { IconContext } from "react-icons";
 import Popover from "@mui/material/Popover";
+import { AuthContext } from "./AuthContext";
 const lobby = require("../sounds/lobby.ogg");
 const lobbyAudio = new Audio(lobby);
 const synth = window.speechSynthesis;
 lobbyAudio.loop = true;
 
-const menuItems = {
-  Home: "/",
-  "NYSE/NASDAQ data search": "/data",
-  Watchlist: "/watchlist",
-  "Bloomberg Radio": "/radio",
-  "Bloomberg TV": "/tv",
-  Charts: "/charts",
-};
+// const menuItems = {
+//   Home: "/",
+//   "NYSE/NASDAQ data search": "/data",
+//   Watchlist: "/watchlist",
+//   "Bloomberg Radio": "/radio",
+//   "Bloomberg TV": "/tv",
+//   Charts: "/charts",
+// };
+
+const menuItems = [
+  { key: "Home", value: "/", privelegesNeeded: false },
+  { key: "NYSE/NASDAQ data search", value: "/data", privelegesNeeded: true },
+  { key: "Watchlist", value: "/watchlist", privelegesNeeded: true },
+  { key: "Bloomberg Radio", value: "/radio", privelegesNeeded: true },
+  { key: "Bloomberg TV", value: "/tv", privelegesNeeded: true },
+  { key: "Charts", value: "/charts", privelegesNeeded: true },
+];
 
 const StyledLink = styled(Link)`
   font-family: "Roboto", sans-serif;
@@ -61,6 +71,7 @@ const StyledLink = styled(Link)`
 `;
 
 class NavigationMenu extends Component {
+  static contextType = AuthContext;
   constructor(props) {
     super(props);
     this.state = {
@@ -90,7 +101,7 @@ class NavigationMenu extends Component {
           utterances.push(
             `Company Name:!${el.desc}!Symbol:!${splitSymbol(el.symbol)}!Prev:!${
               el.prev
-            } dollars!`
+            } dollars!`,
           );
         });
       } else {
@@ -138,19 +149,32 @@ class NavigationMenu extends Component {
   //   }
   // };
 
+  // changeColor = (value) => {
+  //   const darkModeLabel = value ? "dark" : "light";
+  //   const color = value ? "#000000" : "#FFFFFF";
+  //   const emoji = this.state.modeEmojis[darkModeLabel];
+  //   const emojiMode = document.getElementById("modeEmoji");
+
+  //   this.setState({ darkMode: value, darkModeLabel });
+  //   localStorage.setItem("darkMode", value);
+  //   document.body.style.backgroundColor = color;
+
+  //   if (emojiMode !== null) {
+  //     emojiMode.innerHTML = emoji;
+  //   }
+  // };
+
   changeColor = (value) => {
     const darkModeLabel = value ? "dark" : "light";
-    const color = value ? "#000000" : "#FFFFFF";
-    const emoji = this.state.modeEmojis[darkModeLabel];
-    const emojiMode = document.getElementById("modeEmoji");
 
     this.setState({ darkMode: value, darkModeLabel });
-    localStorage.setItem("darkMode", value);
-    document.body.style.backgroundColor = color;
 
-    if (emojiMode !== null) {
-      emojiMode.innerHTML = emoji;
-    }
+    localStorage.setItem("darkMode", value);
+
+    document.body.style.backgroundColor = value ? "#000000" : "#FFFFFF";
+    // //document.body.style.color = value ? "#e5e7eb" : "#111827";
+    // document.body.classList.toggle("dark-mode", value);
+    // document.body.classList.toggle("light-mode", !value);
   };
 
   componentDidMount() {
@@ -166,6 +190,8 @@ class NavigationMenu extends Component {
   }
 
   render() {
+    const { token, loading } = this.context;
+    console.log("token loaded...", token);
     let open = Boolean(this.state.anchorEl);
     let lobbyPlay = this.state.lobbyPlay;
     let lobbyPlayHandler = this.state.lobbyPlayHandler;
@@ -211,7 +237,7 @@ class NavigationMenu extends Component {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "15px",
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                // backgroundColor: "rgba(0, 0, 0, 0.5)",
                 borderRadius: "4rem",
               }}
             >
@@ -286,10 +312,13 @@ class NavigationMenu extends Component {
                 paddingTop: "10px",
               }}
             >
-              {Object.keys(menuItems).map((key) => {
-                if (key != this.state.title) {
-                  return <StyledLink to={menuItems[key]}>{key}</StyledLink>;
-                }
+              {menuItems.map((item) => {
+                if (item.privelegesNeeded && !token) return null;
+                return (
+                  <StyledLink key={item.key} to={item.value}>
+                    {item.key}
+                  </StyledLink>
+                );
               })}
             </motion.div>
           </div>
@@ -408,7 +437,7 @@ class NavigationMenu extends Component {
                         this.setState({
                           lobbyPlayHandler: !lobbyPlayHandler,
                         });
-                      }
+                      },
                     );
                   }}
                 >

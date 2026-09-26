@@ -1,0 +1,129 @@
+* {
+  box-sizing: border-box;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont;
+}
+
+/* body {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  margin: 0;
+} */
+
+.page-center {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  background: #fff;
+  padding: 2.5rem;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+h1,
+h2 {
+  margin: 0 0 0.5rem;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #6366f1;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 1.5rem;
+}
+
+.error {
+  color: #ef4444;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.switch {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 14px;
+}
+
+.switch button {
+  background: none;
+  border: none;
+  color: #6366f1;
+  cursor: pointer;
+  margin-left: 6px;
+}
+
+.btn-demo {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px dashed #6366f1;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-demo:hover {
+  background: #e0e7ff;
+}
+
+.btn-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

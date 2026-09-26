@@ -89,7 +89,7 @@ class Data extends React.Component {
     var self1 = this;
 
     axios
-      .post("https://backend684.herokuapp.com/nyse", {
+      .post(`${process.env.REACT_APP_API_BASE_URL2}/nyse`, {
         params: {
           keyWord: keyWord,
           mode: searchMode,
@@ -131,7 +131,7 @@ class Data extends React.Component {
     var self1 = this;
 
     axios
-      .post("https://backend684.herokuapp.com/nasdaq", {
+      .post(`${process.env.REACT_APP_API_BASE_URL2}/nasdaq`, {
         params: {
           keyWord: keyWord,
           mode: searchMode,
@@ -189,7 +189,7 @@ class Data extends React.Component {
   get_marketCountdown(keyWord) {
     return new Promise(function (resolve, reject) {
       axios
-        .post("https://backend684.herokuapp.com/nasdaq", {
+        .post(`${process.env.REACT_APP_API_BASE_URL2}/nasdaq`, {
           params: {
             keyWord: "market-info",
             mode: "",
@@ -254,7 +254,7 @@ class Data extends React.Component {
         if (nasdaq_arr.length - counter < 5) {
           sliced_arr = nasdaq_arr.slice(
             counter,
-            counter + (nasdaq_arr.length - counter)
+            counter + (nasdaq_arr.length - counter),
           );
           self.setState({ nasdaq_counter: 0 });
         } else {
@@ -290,7 +290,7 @@ class Data extends React.Component {
         if (nyse_arr.length - counter < 5) {
           sliced_arr = nyse_arr.slice(
             counter,
-            counter + (nyse_arr.length - counter)
+            counter + (nyse_arr.length - counter),
           );
           self.setState({ nyse_counter: 0 });
         } else {
@@ -304,7 +304,7 @@ class Data extends React.Component {
   test() {
     let self = this;
     axios
-      .get("https://backend684.herokuapp.com/test")
+      .get(`${process.env.REACT_APP_API_BASE_URL2}/test`)
       .then(function (response) {
         console.log(response);
         self.setState({ serverStatus: `Online (last checked: ${new Date()})` });
@@ -360,10 +360,13 @@ class Data extends React.Component {
 
     this.get_nasdaq("--all", null, null);
 
-    this.interval1 = setInterval(function () {
-      //create redirect function if data is not initially available
-      self1.get_nasdaq("--all", null, null);
-    }, 60 * 15 * 1000);
+    this.interval1 = setInterval(
+      function () {
+        //create redirect function if data is not initially available
+        self1.get_nasdaq("--all", null, null);
+      },
+      60 * 15 * 1000,
+    );
 
     //create function to retrieve nyse data in batches to display in marquee
 

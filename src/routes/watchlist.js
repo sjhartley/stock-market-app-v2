@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Popover from "@mui/material/Popover";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import "../../node_modules/bootstrap/dist/css/bootstrap.min.css";
-import "../../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 import ReactDOMServer from "react-dom/server";
 import html2pdf from "html2pdf-jspdf2";
 import { ToastContainer, toast } from "react-toastify";
@@ -35,7 +34,7 @@ function get_nyse1(keyWord) {
     axios
       .post(
         `${process.env.REACT_APP_API_BASE_URL}/nyse_wo`,
-        `keyWord=${keyWord}`
+        `keyWord=${keyWord}`,
       )
       .then(function (response) {
         resolve(response.data);
@@ -145,7 +144,7 @@ function ProgressBar({ filteredDataLength, totalRecords }) {
     setWidth(
       totalRecords && filteredDataLength
         ? (filteredDataLength / totalRecords) * 100
-        : 0
+        : 0,
     );
   }, [filteredDataLength, totalRecords]);
 
@@ -237,6 +236,7 @@ const DataTable = ({
   logo_dev_key,
   disableProgress,
   toggleDisableProgress,
+  token,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState(null);
@@ -297,45 +297,89 @@ const DataTable = ({
       };
     }
   });
+  // console.log("rows");
+  // console.log(rows);
+  // console.log("token");
+  // console.log(token);
 
   rows = rows.filter((row) => {
     const hasKeys = Object.keys(row).length > 0;
     const hasValidValues = Object.values(row).some(
-      (value) => value !== null && value !== undefined && value !== ""
+      (value) => value !== null && value !== undefined && value !== "",
     );
     return hasKeys && hasValidValues;
   });
 
   const handleSubmit_ticker = (event) => {
     event.preventDefault();
+
+    // Get values from the form
     let ticker = event.target[0].value;
     let submissionType = event.nativeEvent.submitter.value;
 
-    if (submissionType == "Add") {
+    // // Check that userId exists in state before making requests
+    // const { userId } = this.state;
+    // console.log("userId")
+
+    // if (!userId) {
+    //   toast("User ID is missing.");
+    //   return; // Exit if no userId is present
+    // }
+
+    if (submissionType === "Add") {
+      console.log("token..........", token);
       axios
-        .post(`${process.env.REACT_APP_API_BASE_URL}/add`, `keyWord=${ticker}`)
-        .then(function (response) {
-          if (response.data == true) {
+        .post(
+          `${process.env.REACT_APP_API_BASE_URL}/add`,
+          { keyWord: ticker }, // only send keyword; server gets userId from token
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token.toString()}`,
+            },
+          },
+        )
+        .then((response) => {
+          if (response.data === "Successfully added to the watchlist.") {
             toast(`${ticker} added to watchlist!!!`);
           } else {
             toast(response.data);
           }
+        })
+        .catch((error) => {
+          console.error(
+            "Error adding ticker:",
+            error.response?.data || error.message,
+          );
+          toast(error.response?.data || "Error adding ticker");
         });
-    } else if (submissionType == "Delete") {
+    } else if (submissionType === "Delete") {
       axios
         .post(
           `${process.env.REACT_APP_API_BASE_URL}/delete`,
-          `keyWord=${ticker}`
+          { keyWord: ticker }, // server retrieves userId from token
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token.toString()}`,
+            },
+          },
         )
-        .then(function (response) {
-          if (response.data == true) {
+        .then((response) => {
+          if (response.data === true) {
             toast(`${ticker} deleted from watchlist!!!`);
           } else {
             toast(response.data);
           }
+        })
+        .catch((error) => {
+          console.error(
+            "Error deleting ticker:",
+            error.response?.data || error.message,
+          );
+          toast(error.response?.data || "Error deleting ticker");
         });
     }
-    event.preventDefault();
   };
 
   // Determine if the column is numeric
@@ -379,7 +423,7 @@ const DataTable = ({
         initialHeaders.map((header) => ({
           name: header,
           checked: true,
-        }))
+        })),
       );
     }
 
@@ -554,10 +598,10 @@ const DataTable = ({
     if (!draggedHeader || draggedHeader === targetHeader) return;
 
     const draggedIndex = headersWithCheckbox.findIndex(
-      (h) => h.name === draggedHeader
+      (h) => h.name === draggedHeader,
     );
     const targetIndex = headersWithCheckbox.findIndex(
-      (h) => h.name === targetHeader
+      (h) => h.name === targetHeader,
     );
 
     if (draggedIndex === -1 || targetIndex === -1) return;
@@ -802,7 +846,7 @@ const DataTable = ({
                       id="check-all"
                       style={{ marginRight: "0.5rem" }}
                       checked={headersWithCheckbox.every(
-                        (header) => header.checked
+                        (header) => header.checked,
                       )} // Check if all are checked
                       onChange={(e) => {
                         const isChecked = e.target.checked;
@@ -810,7 +854,7 @@ const DataTable = ({
                           (header) => ({
                             ...header,
                             checked: isChecked, // Update all to the new state
-                          })
+                          }),
                         );
                         setHeadersWithCheckbox(updatedHeaders); // Update the state
                         const storageKey = "headers";
@@ -818,7 +862,7 @@ const DataTable = ({
                         // Save the modified or new data back to localStorage
                         localStorage.setItem(
                           storageKey,
-                          JSON.stringify(updatedHeaders)
+                          JSON.stringify(updatedHeaders),
                         );
                       }}
                     />
@@ -868,7 +912,7 @@ const DataTable = ({
                           // Save the modified or new data back to localStorage
                           localStorage.setItem(
                             storageKey,
-                            JSON.stringify(existingData)
+                            JSON.stringify(existingData),
                           );
                         }}
                       />
@@ -1147,7 +1191,7 @@ const DataTable = ({
   );
 };
 
-export default class watchlist extends React.Component {
+export default class Watchlist extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -1171,6 +1215,7 @@ export default class watchlist extends React.Component {
       alignment: "show_list",
       isOpen: false,
       logo_dev_key: null,
+      token: null, // Assuming token is stored in localStorage
     };
 
     this.showList = this.showList.bind(this);
@@ -1189,86 +1234,75 @@ export default class watchlist extends React.Component {
   };
 
   handleChangeTable = (event, newAlignment) => {
-    if (newAlignment == "show_list") {
+    if (newAlignment === "show_list") {
       this.showList(event);
-    } else if (newAlignment == "show_watchlist") {
+    } else if (newAlignment === "show_watchlist") {
       this.showWatchlist(event);
-    } else if (newAlignment == "watchlist_data") {
-      //this.collectWatchlistData(event);
+    } else if (newAlignment === "watchlist_data") {
       this.batchData1(event);
     }
     this.setState({ alignment: newAlignment });
   };
 
-  debounce = (callback, time) => {
-    window.clearTimeout(debounceTimer);
-    debounceTimer = window.setTimeout(callback, time);
-  };
-
-  showList = (event) => {
-    let self = this;
-    if (event != null) {
-      this.setState({ type: event.target.value });
-    }
-
+  showList = () => {
     axios
       .get(`${process.env.REACT_APP_API_BASE_URL}/list`)
-      .then(function (response) {
+      .then((response) => {
         let body = response.data;
-        self.setState({
+        this.setState({
           totalRecords: body.length,
           displayData: {
             data: body,
           },
         });
-      });
+      })
+      .catch((error) => console.error("Error fetching list:", error));
   };
 
-  showWatchlist = (event) => {
-    let self = this;
-    this.setState({ type: event.target.value });
+  showWatchlist = () => {
+    const { token } = this.state;
     axios
-      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
-      .then(function (response) {
-        if (typeof response.data === "object") {
-          if (response.data.length === 0) {
-            this.setState({
-              displayData: {
-                data: null,
-              },
-            });
-          } else {
-            self.setState({
-              totalRecords: response.data.length,
-              displayData: {
-                data: response.data,
-              },
-            });
-          }
+      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          this.setState({
+            totalRecords: response.data.length,
+            displayData: {
+              data: response.data,
+            },
+          });
+        } else {
+          this.setState({
+            displayData: {
+              data: null,
+            },
+          });
         }
-      });
+      })
+      .catch((error) => console.error("Error fetching watchlist:", error));
   };
 
-  collectWatchlistData = (event) => {
-    this.setState({ type: event.target.value });
+  collectWatchlistData = () => {
+    const { token } = this.state;
     localStorage.removeItem("watchlistArr");
 
     let promises = [];
-    let self = this;
-
     axios
-      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
-      .then(async function (response) {
+      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(async (response) => {
         const promises = response.data.map((el) => get_nyse1(el.ticker));
 
-        kachingAudio.play();
-
-        self.setState(
+        // Initialize state for progress tracking
+        this.setState(
           {
             watchlistArr: [],
             progress: 0, // Initialize progress state
           },
-          async function () {
+          async () => {
             const totalPromises = promises.length;
 
             // Helper function to add delay
@@ -1282,7 +1316,7 @@ export default class watchlist extends React.Component {
                 const response = await promises[i];
                 const watchObj = response;
 
-                self.setState(
+                this.setState(
                   (prevState) => ({
                     watchlistArr: [...prevState.watchlistArr, watchObj],
                     progress: ((i + 1) / totalPromises) * 100, // Update progress
@@ -1290,16 +1324,14 @@ export default class watchlist extends React.Component {
                   () => {
                     localStorage.setItem(
                       "watchlistArr",
-                      JSON.stringify(self.state.watchlistArr)
+                      JSON.stringify(this.state.watchlistArr),
                     );
-                    self.setState({
+                    this.setState({
                       displayData: {
-                        data: self.state.watchlistArr,
+                        data: this.state.watchlistArr,
                       },
                     });
-
-                    kachingAudio.play();
-                  }
+                  },
                 );
 
                 processedPromises++;
@@ -1314,212 +1346,236 @@ export default class watchlist extends React.Component {
                 console.error("Error processing ticker:", error);
               }
             }
-          }
+          },
         );
       })
       .catch((error) => console.error("Error fetching watchlist:", error));
   };
 
-  batchData1 = (event) => {
-    this.setState({ type: event.target.value });
-    this.toggleDisableProgress(false);
-    const qs = new URLSearchParams();
-    let self = this;
+  //   batchData1 = () => {
+  //     const { token } = this.state;
+  //     const qs = new URLSearchParams();
+  //     axios
+  //       .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`, {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       })
+  //       .then(async (response) => {
+  //         console.log(response);
+  //         // localStorage.removeItem("watchlistArr");
+  //         // const tickers = response.data.map((el) => el.ticker);
+  //         // const totalRecords = response.data.length;
 
+  //         // axios
+  //         //   .get(`${process.env.REACT_APP_API_BASE_URL}/nyse_authenticate`)
+  //         //   .then((authResponse) => {
+  //         //     qs.set("session_key", authResponse.data.session_key);
+  //         //     qs.set("cbid", authResponse.data.cbid);
+
+  //         //     let promises = [];
+  //         //     this.setState(
+  //         //       { watchlistArr: [], totalRecords: totalRecords },
+  //         //       () => {
+  //         //         for (let i = 0; i < tickers.length; i++) {
+  //         //           qs.set("keyWord", tickers[i]);
+  //         //           const promise = axios
+  //         //             .post(`${process.env.REACT_APP_API_BASE_URL}/nyse_wo`, qs)
+  //         //             .then((response) => {
+  //         //               this.setState(
+  //         //                 (prevState) => ({
+  //         //                   watchlistArr: [
+  //         //                     ...prevState.watchlistArr,
+  //         //                     response.data,
+  //         //                   ],
+  //         //                 }),
+  //         //                 () => {
+  //         //                   localStorage.setItem(
+  //         //                     "watchlistArr",
+  //         //                     JSON.stringify(this.state.watchlistArr)
+  //         //                   );
+  //         //                   this.setState({
+  //         //                     displayData: {
+  //         //                       data: this.state.watchlistArr,
+  //         //                     },
+  //         //                   });
+  //         //                 }
+  //         //               );
+  //         //             });
+  //         //           promises.push(promise);
+  //         //         }
+  //         //         Promise.all(promises);
+  //         //       }
+  //         //     );
+  //         //   })
+  //         //   .catch((error) =>
+  //         //     console.error("Error authenticating with NYSE:", error)
+  //         //   );
+  //       })
+  //       .catch((error) => console.error("Error fetching watchlist:", error));
+  //   };
+
+  batchData1 = () => {
+    const { token } = this.state;
+    console.log("batchData token");
+    console.log(token);
     axios
-      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`)
-      .then(async function (response) {
-        localStorage.removeItem("watchlistArr");
+      .get(`${process.env.REACT_APP_API_BASE_URL}/watchlist`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(async (response) => {
+        console.log(response);
+
+        // Get the list of tickers from the response
         const tickers = response.data.map((el) => el.ticker);
         const totalRecords = response.data.length;
+
+        // Authenticate to get session_key and cbid
         axios
           .get(`${process.env.REACT_APP_API_BASE_URL}/nyse_authenticate`)
-          .then(function (response) {
-            qs.set("session_key", response.data.session_key);
-            qs.set("cbid", response.data.cbid);
+          .then((authResponse) => {
+            const session_key = authResponse.data.session_key;
+            const cbid = authResponse.data.cbid;
 
             let promises = [];
-
-            self.setState(
+            this.setState(
               { watchlistArr: [], totalRecords: totalRecords },
-              function () {
+              () => {
                 for (let i = 0; i < tickers.length; i++) {
-                  qs.set("keyWord", tickers[i]);
+                  // Create the data object with the keyWord (ticker), session_key, and cbid
+                  const data = {
+                    keyWord: tickers[i],
+                    session_key: session_key,
+                    cbid: cbid,
+                  };
+
+                  // Make the POST request with the data object
                   const promise = axios
-                    .post(`${process.env.REACT_APP_API_BASE_URL}/nyse_wo`, qs)
-                    .then(function (response) {
-                      self.setState(
+                    .post(`${process.env.REACT_APP_API_BASE_URL}/nyse_wo`, data)
+                    .then((response) => {
+                      this.setState(
                         (prevState) => ({
                           watchlistArr: [
                             ...prevState.watchlistArr,
-                            response.data,
+                            response.data, // Assuming response.data is the data you want to push
                           ],
                         }),
                         () => {
+                          // Store watchlist data in localStorage
                           localStorage.setItem(
                             "watchlistArr",
-                            JSON.stringify(self.state.watchlistArr)
+                            JSON.stringify(this.state.watchlistArr),
                           );
-                          self.setState({
+                          this.setState({
                             displayData: {
-                              data: self.state.watchlistArr,
+                              data: this.state.watchlistArr,
                             },
                           });
-
-                          kachingAudio.play();
-                        }
+                        },
                       );
+                    })
+                    .catch((error) => {
+                      console.error("Error processing ticker:", error);
                     });
+
+                  // Add the promise to the list
                   promises.push(promise);
                 }
-                Promise.all(promises);
-              }
+
+                // Wait for all promises to resolve
+                Promise.all(promises)
+                  .then(() => {
+                    console.log("All tickers processed successfully");
+                  })
+                  .catch((error) => {
+                    console.error("Error processing tickers:", error);
+                  });
+              },
             );
+          })
+          .catch((error) => {
+            console.error("Error authenticating with NYSE:", error);
           });
       })
-      .catch((error) => console.error("Error fetching watchlist:", error));
-  };
-
-  changeColor = (mode) => {
-    localStorage.setItem("mode", mode);
-    this.setState({ mode: mode });
-    let color = "";
-    let emojiMode = document.getElementById("modeEmoji");
-    let body = document.body;
-
-    if (mode == "dark") {
-      color = "#000000";
-    } else if (mode == "light") {
-      color = "#FFFFFF";
-    }
-
-    body.style.backgroundColor = color;
-
-    if (emojiMode !== null) {
-      emojiMode.innerHTML = this.state.modeEmojis[mode];
-    }
+      .catch((error) => {
+        console.error("Error fetching watchlist:", error);
+      });
   };
 
   ping() {
-    let self = this;
     axios
       .get(`${process.env.REACT_APP_API_BASE_URL}/ping`)
-      .then(function (response) {
-        self.setState({ serverStatus: `Online (last checked: ${new Date()})` });
+      .then((response) => {
+        this.setState({ serverStatus: `Online (last checked: ${new Date()})` });
       })
-      .catch(function (err) {
-        self.setState({
+      .catch(() => {
+        this.setState({
           serverStatus: `Offline (last checked: ${new Date()})`,
         });
       });
   }
 
-  readoutStocks() {
-    let watchlistArr = localStorage.getItem("watchlistArr");
-    let utterances = [];
-    utterances.push("Reading out stock market data...");
-    function splitSymbol(symbol) {
-      if (!symbol) return "Unknown"; // If symbol is empty, return "Unknown"
-      return symbol.split("").join("-");
-    }
-    if (watchlistArr !== null) {
-      watchlistArr = JSON.parse(watchlistArr);
-      if (watchlistArr.length !== 0) {
-        watchlistArr.map(function (el, i) {
-          utterances.push(
-            `Company Name:!${el.desc}!Symbol:!${splitSymbol(el.symbol)}!Prev:!${
-              el.prev
-            } dollars!`
-          );
-        });
-      } else {
-        utterances.push("No data available");
-      }
-      for (let i = 0; i < utterances.length; i++) {
-        const i1 = i;
-
-        let splitComma = utterances[i1].split(",");
-        for (let a = 0; a < splitComma.length; a++) {
-          setTimeout(function () {
-            let speakThis = new SpeechSynthesisUtterance(splitComma[a]);
-            speakThis.rate = 0.7;
-            synth.speak(speakThis);
-          }, 2000);
-        }
-      }
-    }
-  }
-
-  handleModeChangeNavigationMenu = (newMode) => {
-    this.setState({ mode: newMode });
-  };
-
   componentDidMount() {
     this.setState({ type: "show_list" });
     this.setState({ logo_dev_key: process.env.REACT_APP_LOGO_DEV_KEY });
-    let self = this;
-    this.setState({ serverStatus: "Retrieving status please wait..." });
-    localStorage.removeItem("watchlistArr");
-    document.body.style.backgroundImage = "none";
-    let local_mode = localStorage.getItem("mode");
-    if (local_mode !== null) {
-      this.changeColor(local_mode);
-    } else {
-      this.changeColor(this.state.mode);
-    }
-
-    this.showList(null);
-
     this.ping();
-    setInterval(function () {
-      self.ping();
-    }, 60 * 1000);
+    setInterval(() => this.ping(), 60 * 1000);
+    this.showList();
+    console.log("fetched token");
+    console.log(localStorage.getItem("token"));
+    this.setState({ token: localStorage.getItem("token") });
   }
 
   render() {
-    let open = Boolean(this.state.anchorEl);
-    let lobbyPlay = this.state.lobbyPlay;
-    let lobbyPlayHandler = this.state.lobbyPlayHandler;
-    if (lobbyPlay == true && lobbyPlayHandler == true) {
-      if (lobbyPlayHandler == true) {
-        let lobby_music = document.getElementById("lobby_music");
-        if (lobby_music !== null) {
-          lobby_music.style.backgroundColor = "red";
-        }
-        lobbyAudio.play();
-        this.setState({ lobbyPlayHandler: !this.state.lobbyPlayHandler });
-      }
-    } else if (lobbyPlay == false) {
-      let lobby_music = document.getElementById("lobby_music");
-      if (lobby_music !== null) {
-        lobby_music.style.removeProperty("background-color");
-      }
-      lobbyAudio.pause();
-    }
+    const {
+      mode,
+      alignment,
+      displayData,
+      totalRecords,
+      logo_dev_key,
+      disableProgress,
+    } = this.state;
 
     return (
       <div className="watchlist">
-        <NavigationMenu
-          title={"Watchlist"}
-          onChangeMode={(newMode) =>
-            this.handleModeChangeNavigationMenu(newMode)
-          }
-          additional={{
-            darkMode: true,
-            help: true,
-            popoverContent: popoverContent,
-            music: true,
-            dictation: true,
-          }}
-        />
-
-        <div style={{ textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: "12px",
-              color: this.state.mode == "dark" ? "white" : "black",
+        <main>
+          <NavigationMenu
+            title={"Watchlist"}
+            additional={{
+              darkMode: true,
+              help: true,
+              music: true,
+              popoverContent: (
+                <>
+                  Help
+                  <br />
+                  <br />
+                  <strong>Search mode</strong>
+                  <br />
+                  There are 3 options in search mode: "ticker", "name", and
+                  "ticker/name".
+                  <br />
+                  <br />
+                  <strong>Result filter</strong>
+                  <br />
+                  There are 2 options: "equals" and "including".
+                  <br />
+                  "equals" → user input exactly matches an entry
+                  <br />
+                  "including" → user input is included in an entry
+                  <br />
+                  This filtering is not implemented yet.
+                  <br />
+                  <br />
+                  <strong>Source mode</strong>
+                  <br />
+                  There are 2 options: "NYSE" (New York Stock Exchange) and
+                  "NASDAQ".
+                </>
+              ),
             }}
-          >{`Server Status: ${this.state.serverStatus}`}</p>
+          />
+        </main>
+        <div className="server-status toggle-darkmode">
+          <p>{`Server Status: ${this.state.serverStatus}`}</p>
         </div>
         <div className="pb-2">
           <ToggleButtonGroup
@@ -1564,25 +1620,16 @@ export default class watchlist extends React.Component {
             </ToggleButton>
           </ToggleButtonGroup>
         </div>
-        <div
-          id="lists"
-          style={{
-            textAlign: "center",
-            position: "relative",
-            paddingBottom: "10rem",
-          }}
-        >
-          {
-            <DataTable
-              totalRecords={this.state.totalRecords}
-              alignment={this.state.alignment}
-              data={this.state.displayData}
-              type={this.state.type}
-              logo_dev_key={this.state.logo_dev_key}
-              disableProgress={this.state.disableProgress}
-              toggleDisableProgress={this.toggleDisableProgress}
-            />
-          }
+        <div className="data-table">
+          <DataTable
+            totalRecords={totalRecords}
+            data={displayData}
+            type={this.state.type}
+            logo_dev_key={logo_dev_key}
+            disableProgress={disableProgress}
+            toggleDisableProgress={this.toggleDisableProgress}
+            token={localStorage.getItem("token")}
+          />
         </div>
       </div>
     );
